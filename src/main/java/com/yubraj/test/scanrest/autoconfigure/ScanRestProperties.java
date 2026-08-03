@@ -45,7 +45,8 @@ public class ScanRestProperties {
     private boolean enabled = true;
 
     /**
-     * Path to the YAML test specification file.
+     * Name of the YAML test specification file.
+     * Resolved from: 1) classpath (src/test/resources/)  2) project root.
      */
     private String file = "scanrest-tests.yml";
 

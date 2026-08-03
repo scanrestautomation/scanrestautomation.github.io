@@ -15,13 +15,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.env.Environment;
 
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 /**
  * Executes ScanRest tests within the Spring Boot lifecycle.
+ *
+ * <p>The YAML test file is resolved from the classpath first
+ * (i.e. {@code src/test/resources/scanrest-tests.yml}), then falls back
+ * to the project root.</p>
+ *
+ * <p>Automatically detects the running server port from the Spring
+ * {@link Environment} (supports {@code local.server.port} for
+ * {@code @SpringBootTest(webEnvironment = RANDOM_PORT)}).</p>
  *
  * <p>Can run tests:</p>
  * <ul>
@@ -39,27 +50,61 @@ public class ScanRestTestRunner {
     private final EndpointScanner endpointScanner;
     private final YamlGenerator yamlGenerator;
     private final TestReporter testReporter;
+    private final Environment environment;
 
     public ScanRestTestRunner(ScanRestProperties properties,
                                YamlParser yamlParser,
                                EndpointScanner endpointScanner,
                                YamlGenerator yamlGenerator,
-                               TestReporter testReporter) {
+                               TestReporter testReporter,
+                               Environment environment) {
         this.properties = properties;
         this.yamlParser = yamlParser;
         this.endpointScanner = endpointScanner;
         this.yamlGenerator = yamlGenerator;
         this.testReporter = testReporter;
+        this.environment = environment;
     }
 
     /**
-     * Auto-run tests on application startup if configured.
+     * Logs ScanRest status and optionally runs tests on application startup.
      */
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
-        if (!properties.isEnabled() || !properties.isRunOnStartup()) {
+        if (!properties.isEnabled()) {
             return;
         }
+
+        Path yamlPath = resolveYamlPath();
+        String resolvedBaseUrl = resolveBaseUrl();
+
+        log.info("==================================================");
+        log.info("  ScanRest is ACTIVE");
+        log.info("==================================================");
+        log.info("  Test file     : {}", properties.getFile());
+        log.info("  Mode          : {}", properties.getMode());
+        log.info("  Base URL      : {}", resolvedBaseUrl);
+        log.info("  Profile       : {}", properties.getProfile() != null ? properties.getProfile() : "(default)");
+        log.info("  Run on startup: {}", properties.isRunOnStartup());
+        log.info("  Fail on error : {}", properties.isFailOnError());
+
+        if (yamlPath != null) {
+            log.info("  Test file     : FOUND ({})", yamlPath.toAbsolutePath());
+        } else {
+            log.warn("  Test file     : NOT FOUND");
+            log.info("  Place '{}' in src/test/resources/", properties.getFile());
+            if (properties.isAutoGenerate()) {
+                log.info("  Auto-generate : enabled - will generate on first run");
+            }
+        }
+        log.info("==================================================");
+
+        if (!properties.isRunOnStartup()) {
+            log.info("ScanRest: Waiting for manual trigger. Inject ScanRestTestRunner and call runTests()");
+            log.info("  Or set scanrest.run-on-startup=true to run automatically.");
+            return;
+        }
+
         log.info("ScanRest: Running tests on startup...");
         List<TestResult> results = runTests();
         if (!testReporter.allPassed(results) && properties.isFailOnError()) {
@@ -77,16 +122,18 @@ public class ScanRestTestRunner {
      */
     public List<TestResult> runTests() {
         try {
-            Path yamlPath = Path.of(properties.getFile());
+            Path yamlPath = resolveYamlPath();
 
             // Auto-generate YAML if enabled and file doesn't exist
-            if (!Files.exists(yamlPath) && properties.isAutoGenerate()) {
-                log.info("ScanRest: Test file not found. Auto-generating: {}", yamlPath);
-                autoGenerateYaml(yamlPath);
+            if (yamlPath == null && properties.isAutoGenerate()) {
+                Path generateTo = Path.of("src/test/resources", properties.getFile());
+                log.info("ScanRest: Test file not found. Auto-generating: {}", generateTo);
+                autoGenerateYaml(generateTo);
+                yamlPath = generateTo;
             }
 
-            if (!Files.exists(yamlPath)) {
-                log.warn("ScanRest: Test file not found: {}. Skipping tests.", yamlPath);
+            if (yamlPath == null || !Files.exists(yamlPath)) {
+                log.warn("ScanRest: Test file '{}' not found in src/test/resources/. Skipping tests.", properties.getFile());
                 return List.of();
             }
 
@@ -98,10 +145,9 @@ public class ScanRestTestRunner {
                 suite.getConfig().setActiveProfile(properties.getProfile());
             }
 
-            // Override baseUrl from properties
-            if (properties.getBaseUrl() != null) {
-                suite.getConfig().setBaseUrl(properties.getBaseUrl());
-            }
+            // Override baseUrl: properties > auto-detected port > YAML config
+            String effectiveBaseUrl = resolveBaseUrl();
+            suite.getConfig().setBaseUrl(effectiveBaseUrl);
 
             // Build resolver
             VariableResolver resolver = new VariableResolver(suite.getConfig().resolveVariables());
@@ -130,6 +176,72 @@ public class ScanRestTestRunner {
         }
     }
 
+    /**
+     * Resolve the effective base URL.
+     * Priority:
+     * 1. {@code scanrest.base-url} property (explicit override)
+     * 2. Auto-detect from Spring's {@code local.server.port} (for @SpringBootTest RANDOM_PORT)
+     * 3. Auto-detect from Spring's {@code server.port} property
+     * 4. Default: http://localhost:8080
+     */
+    private String resolveBaseUrl() {
+        // 1. Explicit property override
+        if (properties.getBaseUrl() != null && !properties.getBaseUrl().isBlank()) {
+            return properties.getBaseUrl();
+        }
+
+        // 2. Auto-detect from local.server.port (set by @SpringBootTest with RANDOM_PORT or DEFINED_PORT)
+        String localPort = environment.getProperty("local.server.port");
+        if (localPort != null) {
+            log.debug("ScanRest: Auto-detected local.server.port={}", localPort);
+            return "http://localhost:" + localPort;
+        }
+
+        // 3. Auto-detect from server.port
+        String serverPort = environment.getProperty("server.port");
+        if (serverPort != null && !"0".equals(serverPort)) {
+            return "http://localhost:" + serverPort;
+        }
+
+        // 4. Default
+        return "http://localhost:8080";
+    }
+
+    /**
+     * Resolve the YAML test file path.
+     * Priority:
+     * 1. Classpath (src/test/resources/ at runtime) via classloader
+     * 2. src/test/resources/ directly (for IDE / non-classpath scenarios)
+     * 3. Project root fallback
+     */
+    private Path resolveYamlPath() {
+        String fileName = properties.getFile();
+
+        // 1. Try classpath (this picks up src/test/resources/ during test phase)
+        URL classpathUrl = getClass().getClassLoader().getResource(fileName);
+        if (classpathUrl != null) {
+            try {
+                return Paths.get(classpathUrl.toURI());
+            } catch (Exception e) {
+                log.debug("ScanRest: Could not convert classpath URL to path: {}", e.getMessage());
+            }
+        }
+
+        // 2. Try src/test/resources/ directly (for IDE / non-classpath scenarios)
+        Path testResources = Path.of("src/test/resources", fileName);
+        if (Files.exists(testResources)) {
+            return testResources;
+        }
+
+        // 3. Fallback to project root
+        Path rootPath = Path.of(fileName);
+        if (Files.exists(rootPath)) {
+            return rootPath;
+        }
+
+        return null;
+    }
+
     private TestExecutor createExecutor(Path yamlPath) {
         return switch (properties.getMode()) {
             case LIVE -> new LiveHttpExecutor(
@@ -145,7 +257,6 @@ public class ScanRestTestRunner {
 
     private void autoGenerateYaml(Path yamlPath) {
         try {
-            // Try to find compiled classes
             Path classesDir = Path.of("target/classes");
             if (!Files.exists(classesDir)) {
                 classesDir = Path.of("build/classes/java/main"); // Gradle
@@ -155,6 +266,7 @@ public class ScanRestTestRunner {
                 return;
             }
 
+            Files.createDirectories(yamlPath.getParent());
             List<ScannedEndpoint> endpoints = endpointScanner.scan(classesDir.toString());
             if (!endpoints.isEmpty()) {
                 yamlGenerator.generate(endpoints, yamlPath,

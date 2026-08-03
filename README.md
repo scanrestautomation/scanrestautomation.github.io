@@ -316,36 +316,42 @@ tests:
 
 ```
 src/main/java/com/yubraj/test/scanrest/
-├── cli/                         # Picocli CLI commands
-│   ├── ScanRestCli.java         # Main entry point
-│   ├── ScanCommand.java         # 'scan' command
-│   ├── GenerateCommand.java     # 'generate' command
-│   └── TestCommand.java         # 'test' command
+├── autoconfigure/                   # Spring Boot auto-configuration
+│   ├── ScanRestAutoConfiguration.java   # Auto-config (beans, conditional)
+│   ├── ScanRestProperties.java          # @ConfigurationProperties
+│   ├── ScanRestTestRunner.java          # Test runner (startup + programmatic)
+│   ├── ScanRestTestFailureException.java
+│   └── EnableScanRest.java              # @EnableScanRest annotation
+├── cli/                             # Picocli CLI commands
+│   ├── ScanRestCli.java             # Main entry point
+│   ├── ScanCommand.java             # 'scan' command
+│   ├── GenerateCommand.java         # 'generate' command
+│   └── TestCommand.java             # 'test' command
 ├── config/
-│   └── YamlParser.java          # YAML parser (simple + detailed formats)
+│   └── YamlParser.java              # YAML parser (simple + detailed formats)
 ├── engine/
-│   ├── AssertionEngine.java     # JSONPath + matcher validation engine
-│   ├── MatcherEngine.java       # Matcher expression evaluator
-│   └── VariableResolver.java    # {{variable}} interpolation
+│   ├── AssertionEngine.java         # JSONPath + matcher validation engine
+│   ├── MatcherEngine.java           # Matcher expression evaluator
+│   └── VariableResolver.java        # {{variable}} interpolation
 ├── executor/
-│   ├── TestExecutor.java        # Executor interface
-│   ├── LiveHttpExecutor.java    # RestAssured (live server)
+│   ├── TestExecutor.java            # Executor interface
+│   ├── LiveHttpExecutor.java        # RestAssured (live server)
 │   └── EmbeddedSpringExecutor.java  # MockMvc (embedded)
 ├── generator/
-│   └── YamlGenerator.java       # Skeleton YAML generator
+│   └── YamlGenerator.java           # Skeleton YAML generator
 ├── model/
-│   ├── TestSuiteSpec.java       # Root spec (config + tests)
-│   ├── ScanRestConfig.java      # Config block (profiles, vars, headers)
-│   ├── TestSpec.java            # Single test definition
-│   ├── RequestSpec.java         # Request (headers, body, params)
-│   ├── ExpectSpec.java          # Expected response (status, body, save)
-│   ├── HttpMethod.java          # HTTP method enum
-│   ├── TestResult.java          # Execution result
-│   └── ScannedEndpoint.java     # Scanned endpoint info
+│   ├── TestSuiteSpec.java           # Root spec (config + tests)
+│   ├── ScanRestConfig.java          # Config block (profiles, vars, headers)
+│   ├── TestSpec.java                # Single test definition
+│   ├── RequestSpec.java             # Request (headers, body, params)
+│   ├── ExpectSpec.java              # Expected response (status, body, save)
+│   ├── HttpMethod.java              # HTTP method enum
+│   ├── TestResult.java              # Execution result
+│   └── ScannedEndpoint.java         # Scanned endpoint info
 ├── report/
-│   └── TestReporter.java        # Console & file reporting
+│   └── TestReporter.java            # Console & file reporting
 └── scanner/
-    └── EndpointScanner.java     # Spring annotation scanner
+    └── EndpointScanner.java         # Spring annotation scanner
 ```
 
 ## Requirements

@@ -1,0 +1,122 @@
+# ============================================
+# ScanRest Test Specification - Demo User API
+# ============================================
+
+config:
+  name: "User Service API Tests"
+  baseUrl: "http://localhost:8080"
+
+  globalHeaders:
+    Content-Type: "application/json"
+
+  variables: {}
+
+# ============================================
+# TESTS
+# ============================================
+tests:
+
+  # -------- GET all users (empty initially) --------
+  - GET /api/users:
+      expect: 200
+
+  # -------- CREATE a new user --------
+  - name: "Create user"
+    path: /api/users
+    method: POST
+    request:
+      body:
+        firstname: "John"
+        lastname: "Doe"
+        email: "john@example.com"
+        phone: "1234567890"
+        status: "ACTIVE"
+    expect:
+      status: 201
+      body:
+        $.id: NOT_NULL
+        $.firstname: "John"
+        $.lastname: "Doe"
+        $.email: "john@example.com"
+        $.status: "ACTIVE"
+      save:
+        userId: "$.id"
+
+  # -------- GET user by ID (chained) --------
+  - name: "Get created user by ID"
+    path: /api/users/{{userId}}
+    method: GET
+    dependsOn: "Create user"
+    expect:
+      status: 200
+      body:
+        $.id: NOT_NULL
+        $.firstname: "John"
+        $.email: CONTAINS("@")
+
+  # -------- UPDATE user --------
+  - name: "Update user"
+    path: /api/users/{{userId}}
+    method: PUT
+    dependsOn: "Get created user by ID"
+    request:
+      body:
+        firstname: "Jane"
+        lastname: "Doe"
+        email: "jane@example.com"
+        phone: "9876543210"
+        status: "ACTIVE"
+    expect:
+      status: 200
+      body:
+        $.firstname: "Jane"
+        $.email: "jane@example.com"
+
+  # -------- Verify update worked --------
+  - name: "Verify updated user"
+    path: /api/users/{{userId}}
+    method: GET
+    dependsOn: "Update user"
+    expect:
+      status: 200
+      body:
+        $.firstname: "Jane"
+        $.lastname: "Doe"
+
+  # -------- GET all users (should have 1 now) --------
+  - name: "List users after create"
+    path: /api/users
+    method: GET
+    dependsOn: "Create user"
+    expect:
+      status: 200
+
+  # -------- DELETE user --------
+  - name: "Delete user"
+    path: /api/users/{{userId}}
+    method: DELETE
+    dependsOn: "Verify updated user"
+    expect:
+      status: 204
+
+  # -------- Verify delete (should 404) --------
+  - name: "Verify deleted user is gone"
+    path: /api/users/{{userId}}
+    method: GET
+    dependsOn: "Delete user"
+    expect:
+      status: 404
+
+  # -------- GET non-existent user --------
+  - name: "Get non-existent user"
+    path: /api/users/99999
+    method: GET
+    expect:
+      status: 404
+
+  # -------- DELETE non-existent user --------
+  - name: "Delete non-existent user"
+    path: /api/users/99999
+    method: DELETE
+    expect:
+      status: 404

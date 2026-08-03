@@ -191,8 +191,15 @@ public class LiveHttpExecutor implements TestExecutor {
         } catch (Exception e) {
             result.setDuration(Duration.between(start, Instant.now()));
             result.setStatus(TestResult.Status.ERROR);
-            result.setErrorMessage(e.getMessage());
-            log.error("[ERROR] {} {} - {}: {}", test.getMethod(), test.getPath(), displayName, e.getMessage());
+            String errorMsg = e.getMessage();
+            if (errorMsg == null || errorMsg.isBlank()) {
+                errorMsg = e.getClass().getSimpleName();
+                if (e.getCause() != null && e.getCause().getMessage() != null) {
+                    errorMsg += ": " + e.getCause().getMessage();
+                }
+            }
+            result.setErrorMessage(errorMsg);
+            log.error("[ERROR] {} {} - {}: {}", test.getMethod(), test.getPath(), displayName, errorMsg, e);
         }
 
         return result;

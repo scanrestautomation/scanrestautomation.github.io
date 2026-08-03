@@ -14,6 +14,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 
 /**
  * Spring Boot auto-configuration for ScanRest.
@@ -68,7 +69,8 @@ public class ScanRestAutoConfiguration {
                                                   YamlParser yamlParser,
                                                   EndpointScanner endpointScanner,
                                                   YamlGenerator yamlGenerator,
-                                                  TestReporter testReporter) {
-        return new ScanRestTestRunner(properties, yamlParser, endpointScanner, yamlGenerator, testReporter);
+                                                  TestReporter testReporter,
+                                                  Environment environment) {
+        return new ScanRestTestRunner(properties, yamlParser, endpointScanner, yamlGenerator, testReporter, environment);
     }
 }
