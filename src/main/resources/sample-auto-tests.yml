@@ -1,0 +1,122 @@
+# ============================================
+# ScanRest Test Specification - Sample File
+# ============================================
+#
+# Usage:
+#   java -jar scanrest.jar test --file scanrest-tests.yml --mode live
+#   java -jar scanrest.jar test --file scanrest-tests.yml --mode live --profile staging
+#   java -jar scanrest.jar test --file scanrest-tests.yml --mode embedded --app-class com.example.Application
+
+config:
+  name: "User Service API Tests"
+  baseUrl: "http://localhost:8080"
+
+  # Profiles support (like Spring profiles)
+  activeProfile: dev
+
+  profiles:
+    dev:
+      baseUrl: "http://localhost:8080"
+      token: "dev-token-123"
+    staging:
+      baseUrl: "https://staging.api.com"
+      token: "staging-token-456"
+
+  globalHeaders:
+    Content-Type: "application/json"
+    Authorization: "Bearer {{token}}"
+
+  # Global variables (reusable across tests)
+  variables:
+    userId: "101"
+    adminEmail: "admin@test.com"
+
+# ============================================
+# TESTS
+# ============================================
+tests:
+
+  # -------- SIMPLE FORMAT (80% of cases) --------
+  - GET /api/users:
+      expect: 200
+
+  - GET /api/users/{{userId}}:
+      expect: 200
+      body:
+        $.id: 101
+        $.email: NOT_NULL
+
+  # -------- DETAILED FORMAT (when you need control) --------
+  - name: "Create a new user"
+    path: /api/users
+    method: POST
+    request:
+      body:
+        name: "John Doe"
+        email: "john@example.com"
+        role: "USER"
+    expect:
+      status: 201
+      body:
+        $.id: NOT_NULL
+        $.name: "John Doe"
+      headers:
+        Location: CONTAINS("/api/users/")
+      # Save response values for chaining
+      save:
+        createdUserId: "$.id"
+
+  # -------- CHAINED TESTS (use saved values) --------
+  - name: "Verify created user exists"
+    path: /api/users/{{createdUserId}}
+    method: GET
+    dependsOn: "Create a new user"
+    expect:
+      status: 200
+      body:
+        $.name: "John Doe"
+
+  # -------- NEGATIVE / EDGE CASES --------
+  - name: "Reject invalid email"
+    path: /api/users
+    method: POST
+    request:
+      body:
+        name: "Bad User"
+        email: "not-an-email"
+    expect:
+      status: 400
+      body:
+        $.errors[0].field: "email"
+
+  # -------- BULK PARAMETERIZED TESTS --------
+  - name: "Test multiple user lookups"
+    path: /api/users/{{id}}
+    method: GET
+    parameterized:
+      - { id: "1",   expect: 200 }
+      - { id: "2",   expect: 200 }
+      - { id: "999", expect: 404 }
+      - { id: "abc", expect: 400 }
+
+  # -------- SCHEMA VALIDATION --------
+  - GET /api/users:
+      expect:
+        status: 200
+        schema: "schemas/user-list.json"
+
+  # -------- AUTH TESTS --------
+  - name: "Reject unauthenticated access"
+    path: /api/admin/users
+    method: GET
+    auth: NONE
+    expect:
+      status: 401
+
+  # -------- CLEANUP --------
+  - name: "Delete test user"
+    path: /api/users/{{createdUserId}}
+    method: DELETE
+    dependsOn: "Verify created user exists"
+    expect:
+      status: 204

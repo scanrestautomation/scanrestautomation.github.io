@@ -1,0 +1,71 @@
+{
+  "groups": [
+    {
+      "name": "scanrest",
+      "type": "com.yubraj.test.scanrest.autoconfigure.ScanRestProperties",
+      "description": "ScanRest auto API testing configuration."
+    }
+  ],
+  "properties": [
+    {
+      "name": "scanrest.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable or disable ScanRest entirely.",
+      "defaultValue": true
+    },
+    {
+      "name": "scanrest.file",
+      "type": "java.lang.String",
+      "description": "Path to the YAML test specification file.",
+      "defaultValue": "scanrest-tests.yml"
+    },
+    {
+      "name": "scanrest.mode",
+      "type": "com.yubraj.test.scanrest.autoconfigure.ScanRestProperties$Mode",
+      "description": "Execution mode: LIVE (HTTP against running server) or EMBEDDED (MockMvc).",
+      "defaultValue": "EMBEDDED"
+    },
+    {
+      "name": "scanrest.profile",
+      "type": "java.lang.String",
+      "description": "Active profile (overrides config.activeProfile from YAML)."
+    },
+    {
+      "name": "scanrest.base-url",
+      "type": "java.lang.String",
+      "description": "Base URL override for live mode."
+    },
+    {
+      "name": "scanrest.auto-generate",
+      "type": "java.lang.Boolean",
+      "description": "Auto-scan controllers and generate YAML skeleton if file doesn't exist.",
+      "defaultValue": false
+    },
+    {
+      "name": "scanrest.fail-on-error",
+      "type": "java.lang.Boolean",
+      "description": "Whether to fail the build/test phase when tests fail.",
+      "defaultValue": true
+    },
+    {
+      "name": "scanrest.report-path",
+      "type": "java.lang.String",
+      "description": "Path to write a test report file."
+    },
+    {
+      "name": "scanrest.run-on-startup",
+      "type": "java.lang.Boolean",
+      "description": "Run tests automatically on application startup.",
+      "defaultValue": false
+    }
+  ],
+  "hints": [
+    {
+      "name": "scanrest.mode",
+      "values": [
+        { "value": "LIVE", "description": "Execute tests via HTTP against a running server." },
+        { "value": "EMBEDDED", "description": "Execute tests using Spring MockMvc (no external server needed)." }
+      ]
+    }
+  ]
+}
