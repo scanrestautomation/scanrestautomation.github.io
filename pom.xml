@@ -122,12 +122,12 @@
             <version>${logback.version}</version>
         </dependency>
 
-        <!-- Test -->
+        <!-- JUnit 5 API (optional - for @TestFactory / DynamicTest integration) -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
+            <artifactId>junit-jupiter-api</artifactId>
             <version>${junit.version}</version>
-            <scope>test</scope>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 

@@ -76,7 +76,38 @@ scanrest.run-on-startup=false
 scanrest.mock-services=false
 ```
 
-### 3. Choose a Test Strategy
+### 3. Write a Test Class
+
+Use `@TestFactory` to generate one JUnit test per YAML test case. Each test appears individually in Maven Surefire, IntelliJ, and CI dashboards:
+
+```java
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@EnableScanRest
+class ApiTests {
+
+    @Autowired
+    private ScanRestTestRunner scanRestRunner;
+
+    @TestFactory
+    Collection<DynamicTest> apiTests() {
+        return scanRestRunner.toDynamicTests();
+    }
+}
+```
+
+This produces:
+```
+Tests run: 10, Failures: 0, Errors: 0, Skipped: 0
+  ✓ GET /api/users
+  ✓ Create user
+  ✓ Get created user by ID
+  ✓ Update user
+  ...
+```
+
+Each YAML test case is a first-class JUnit test with its own pass/fail/skip status.
+
+### 4. Choose a Test Strategy
 
 ScanRest supports multiple test strategies. Pick the one that fits your needs:
 
@@ -86,22 +117,21 @@ Tests run against a real HTTP server with the full application stack.
 
 ```java
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@EnableScanRest
 class FullIntegrationTests {
 
     @Autowired
     private ScanRestTestRunner scanRestRunner;
 
-    @Test
-    void runAllApiTests() {
-        List<TestResult> results = scanRestRunner.runTests();
-        assertThat(results).allMatch(TestResult::isPassed);
+    @TestFactory
+    Collection<DynamicTest> apiTests() {
+        return scanRestRunner.toDynamicTests();
     }
 }
 ```
 
 ```properties
 scanrest.mode=LIVE
-scanrest.run-on-startup=true
 ```
 
 The server port is auto-detected from `local.server.port`.
