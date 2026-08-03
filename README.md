@@ -142,6 +142,7 @@ Tests run via MockMvc against the existing Spring context. You control which bea
 
 ```java
 @SpringBootTest
+@EnableScanRest
 class MockedServiceTests {
 
     @MockBean
@@ -158,17 +159,15 @@ class MockedServiceTests {
         when(userService.createUser(any())).thenReturn(testUser);
     }
 
-    @Test
-    void runAllApiTests() {
-        List<TestResult> results = scanRestRunner.runTests();
-        assertThat(results).allMatch(TestResult::isPassed);
+    @TestFactory
+    Collection<DynamicTest> apiTests() {
+        return scanRestRunner.toDynamicTests();
     }
 }
 ```
 
 ```properties
 scanrest.mode=MOCKMVC
-scanrest.run-on-startup=false
 ```
 
 #### Strategy C: Controller-Only Test Slice
@@ -191,10 +190,9 @@ class ControllerSliceTests {
         // Set up mock returns
     }
 
-    @Test
-    void runControllerTests() {
-        List<TestResult> results = scanRestRunner.runTests();
-        assertThat(results).allMatch(TestResult::isPassed);
+    @TestFactory
+    Collection<DynamicTest> controllerTests() {
+        return scanRestRunner.toDynamicTests();
     }
 }
 ```
@@ -222,15 +220,15 @@ Use Spring's `@ActiveProfiles` to swap the real database for an in-memory one.
 ```java
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
+@EnableScanRest
 class InMemoryDbTests {
 
     @Autowired
     private ScanRestTestRunner scanRestRunner;
 
-    @Test
-    void runAllApiTests() {
-        List<TestResult> results = scanRestRunner.runTests();
-        assertThat(results).allMatch(TestResult::isPassed);
+    @TestFactory
+    Collection<DynamicTest> apiTests() {
+        return scanRestRunner.toDynamicTests();
     }
 }
 ```
@@ -250,7 +248,10 @@ scanrest:
   run-on-startup: true
 ```
 
-#### Strategy F: Auto-run on Startup (No Test Class)
+#### Strategy F: Auto-run on Startup (No @TestFactory)
+
+Uses `run-on-startup` to execute all tests as a single batch on context startup.
+Results appear as 1 test in JUnit (not individual). Use `@TestFactory` (strategies A-E) for individual test visibility.
 
 ```properties
 scanrest.enabled=true
@@ -259,7 +260,27 @@ scanrest.run-on-startup=true
 scanrest.fail-on-error=true
 ```
 
-Tests run automatically when the Spring context starts during `mvn test`. Requires `@SpringBootTest(webEnvironment = RANDOM_PORT)` in your test class.
+#### Strategy G: Batch with `runTests()` (Backward Compatible)
+
+If you prefer a single test method wrapping all YAML tests:
+
+```java
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@EnableScanRest
+class ApiTests {
+
+    @Autowired
+    private ScanRestTestRunner scanRestRunner;
+
+    @Test
+    void runAllApiTests() {
+        List<TestResult> results = scanRestRunner.runTests();
+        assertThat(results).allMatch(TestResult::isPassed);
+    }
+}
+```
+
+This shows `Tests run: 1` in JUnit. Use `@TestFactory` instead for individual test visibility.
 
 ### All Properties
 
