@@ -22,8 +22,8 @@
     {
       "name": "scanrest.mode",
       "type": "com.yubraj.test.scanrest.autoconfigure.ScanRestProperties$Mode",
-      "description": "Execution mode: LIVE (HTTP against running server) or EMBEDDED (MockMvc).",
-      "defaultValue": "EMBEDDED"
+      "description": "Execution mode: LIVE (HTTP), MOCKMVC (Spring MockMvc), or EMBEDDED (deprecated alias for MOCKMVC).",
+      "defaultValue": "LIVE"
     },
     {
       "name": "scanrest.profile",
@@ -57,14 +57,21 @@
       "type": "java.lang.Boolean",
       "description": "Run tests automatically on application startup.",
       "defaultValue": false
+    },
+    {
+      "name": "scanrest.mock-services",
+      "type": "java.lang.Boolean",
+      "description": "Auto-mock all @Service beans with Mockito (for MOCKMVC mode). Requires Mockito on the classpath.",
+      "defaultValue": false
     }
   ],
   "hints": [
     {
       "name": "scanrest.mode",
       "values": [
-        { "value": "LIVE", "description": "Execute tests via HTTP against a running server." },
-        { "value": "EMBEDDED", "description": "Execute tests using Spring MockMvc (no external server needed)." }
+        { "value": "LIVE", "description": "Execute tests via HTTP against a running server (requires @SpringBootTest with RANDOM_PORT)." },
+        { "value": "MOCKMVC", "description": "Execute tests using Spring MockMvc from the existing context. Supports @MockBean, @WebMvcTest, @ActiveProfiles." },
+        { "value": "EMBEDDED", "description": "Deprecated. Alias for MOCKMVC." }
       ]
     }
   ]

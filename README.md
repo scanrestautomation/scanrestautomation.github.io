@@ -15,8 +15,10 @@ Auto API testing library for Spring Boot projects. Scans controllers, generates 
 - **Parameterized Tests** - Bulk test data with different inputs/expectations
 - **JSON Schema Validation** - Validate response structure against JSON Schema files
 - **Auth Override** - Skip auth headers per test (`auth: NONE`)
-- **Dual Execution Modes** - Live HTTP (RestAssured) or Embedded Spring (MockMvc)
+- **Three Execution Modes** - Live HTTP (RestAssured), MockMvc (existing Spring context), or auto-mock
 - **Spring Boot Starter** - Auto-configuration with `application.properties` support
+- **Test Context Aware** - Respects `@MockBean`, `@WebMvcTest`, `@ActiveProfiles`, test slices
+- **Auto-Mock Services** - `scanrest.mock-services=true` replaces `@Service` beans with Mockito mocks
 - **Console & File Reports** - Color-coded console output + exportable report files
 
 ## Usage
@@ -49,7 +51,7 @@ scanrest.enabled=true
 # Path to the YAML test specification file
 scanrest.file=scanrest-tests.yml
 
-# Execution mode: LIVE or EMBEDDED
+# Execution mode: LIVE | MOCKMVC | EMBEDDED (deprecated alias for MOCKMVC)
 scanrest.mode=LIVE
 
 # Active profile (overrides YAML config)
@@ -69,31 +71,22 @@ scanrest.report-path=target/scanrest-report.txt
 
 # Run tests on application startup
 scanrest.run-on-startup=false
+
+# Auto-mock all @Service beans (for MOCKMVC mode)
+scanrest.mock-services=false
 ```
 
-Or in `application.yml`:
+### 3. Choose a Test Strategy
 
-```yaml
-scanrest:
-  enabled: true
-  file: scanrest-tests.yml
-  mode: LIVE
-  profile: dev
-  base-url: http://localhost:8080
-  auto-generate: false
-  fail-on-error: true
-  report-path: target/scanrest-report.txt
-  run-on-startup: false
-```
+ScanRest supports multiple test strategies. Pick the one that fits your needs:
 
-### 3. Write a JUnit Test
+#### Strategy A: Full Integration Test (LIVE mode)
 
-**Option A: Use `@EnableScanRest` annotation**
+Tests run against a real HTTP server with the full application stack.
 
 ```java
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@EnableScanRest
-class ApiTests {
+class FullIntegrationTests {
 
     @Autowired
     private ScanRestTestRunner scanRestRunner;
@@ -106,15 +99,137 @@ class ApiTests {
 }
 ```
 
-**Option B: Auto-run on startup (no test class needed)**
+```properties
+scanrest.mode=LIVE
+scanrest.run-on-startup=true
+```
+
+The server port is auto-detected from `local.server.port`.
+
+#### Strategy B: MockMvc with Mocked Services
+
+Tests run via MockMvc against the existing Spring context. You control which beans are mocked.
+
+```java
+@SpringBootTest
+class MockedServiceTests {
+
+    @MockBean
+    private UserService userService;  // You control the mock
+
+    @Autowired
+    private ScanRestTestRunner scanRestRunner;
+
+    @BeforeEach
+    void setup() {
+        User testUser = new User(1L, "John", "Doe", "john@example.com", "1234567890", "ACTIVE");
+        when(userService.getAllUsers()).thenReturn(List.of(testUser));
+        when(userService.getUserById(1L)).thenReturn(Optional.of(testUser));
+        when(userService.createUser(any())).thenReturn(testUser);
+    }
+
+    @Test
+    void runAllApiTests() {
+        List<TestResult> results = scanRestRunner.runTests();
+        assertThat(results).allMatch(TestResult::isPassed);
+    }
+}
+```
+
+```properties
+scanrest.mode=MOCKMVC
+scanrest.run-on-startup=false
+```
+
+#### Strategy C: Controller-Only Test Slice
+
+Only the controller layer is loaded. Services must be `@MockBean`-ed.
+
+```java
+@WebMvcTest(UserController.class)
+@EnableScanRest
+class ControllerSliceTests {
+
+    @MockBean
+    private UserService userService;
+
+    @Autowired
+    private ScanRestTestRunner scanRestRunner;
+
+    @BeforeEach
+    void setup() {
+        // Set up mock returns
+    }
+
+    @Test
+    void runControllerTests() {
+        List<TestResult> results = scanRestRunner.runTests();
+        assertThat(results).allMatch(TestResult::isPassed);
+    }
+}
+```
+
+```properties
+scanrest.mode=MOCKMVC
+```
+
+#### Strategy D: Auto-Mock Services (Convenience)
+
+ScanRest automatically replaces all `@Service` beans with Mockito mocks. Quick and easy, but mock methods return default values (null, 0, empty collections).
+
+```properties
+scanrest.mode=MOCKMVC
+scanrest.mock-services=true
+scanrest.run-on-startup=true
+```
+
+Best for verifying controllers don't throw exceptions and return correct status codes, without needing real service logic.
+
+#### Strategy E: In-Memory Database (Test Profile)
+
+Use Spring's `@ActiveProfiles` to swap the real database for an in-memory one.
+
+```java
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
+class InMemoryDbTests {
+
+    @Autowired
+    private ScanRestTestRunner scanRestRunner;
+
+    @Test
+    void runAllApiTests() {
+        List<TestResult> results = scanRestRunner.runTests();
+        assertThat(results).allMatch(TestResult::isPassed);
+    }
+}
+```
+
+```yaml
+# application-test.yml
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+scanrest:
+  mode: LIVE
+  run-on-startup: true
+```
+
+#### Strategy F: Auto-run on Startup (No Test Class)
 
 ```properties
 scanrest.enabled=true
+scanrest.mode=LIVE
 scanrest.run-on-startup=true
 scanrest.fail-on-error=true
 ```
 
-Tests run automatically when the Spring context starts during `mvn test`.
+Tests run automatically when the Spring context starts during `mvn test`. Requires `@SpringBootTest(webEnvironment = RANDOM_PORT)` in your test class.
 
 ### All Properties
 
@@ -122,13 +237,22 @@ Tests run automatically when the Spring context starts during `mvn test`.
 |----------|------|---------|-------------|
 | `scanrest.enabled` | `boolean` | `true` | Enable/disable ScanRest entirely |
 | `scanrest.file` | `String` | `scanrest-tests.yml` | Path to YAML test file |
-| `scanrest.mode` | `LIVE\|EMBEDDED` | `EMBEDDED` | Execution mode |
+| `scanrest.mode` | `LIVE\|MOCKMVC\|EMBEDDED` | `LIVE` | Execution mode |
 | `scanrest.profile` | `String` | - | Active profile (overrides YAML) |
 | `scanrest.base-url` | `String` | - | Base URL override for live mode |
 | `scanrest.auto-generate` | `boolean` | `false` | Auto-generate YAML from scanned endpoints |
 | `scanrest.fail-on-error` | `boolean` | `true` | Fail build on test failure |
 | `scanrest.report-path` | `String` | - | Path to write report file |
 | `scanrest.run-on-startup` | `boolean` | `false` | Run tests on app startup |
+| `scanrest.mock-services` | `boolean` | `false` | Auto-mock `@Service` beans with Mockito |
+
+### Execution Modes
+
+| Mode | Server | Context | Best For |
+|------|--------|---------|----------|
+| `LIVE` | Real HTTP (RestAssured) | Full app + real server | Integration tests, E2E |
+| `MOCKMVC` | MockMvc (no HTTP) | Existing Spring context | Unit/controller tests, @MockBean, @WebMvcTest |
+| `EMBEDDED` | *(deprecated)* | Alias for MOCKMVC | Use MOCKMVC instead |
 
 ---
 
@@ -318,6 +442,7 @@ tests:
 src/main/java/com/yubraj/test/scanrest/
 ├── autoconfigure/                   # Spring Boot auto-configuration
 │   ├── ScanRestAutoConfiguration.java   # Auto-config (beans, conditional)
+│   ├── ScanRestMockConfiguration.java   # Auto-mock @Service beans
 │   ├── ScanRestProperties.java          # @ConfigurationProperties
 │   ├── ScanRestTestRunner.java          # Test runner (startup + programmatic)
 │   ├── ScanRestTestFailureException.java
@@ -336,7 +461,8 @@ src/main/java/com/yubraj/test/scanrest/
 ├── executor/
 │   ├── TestExecutor.java            # Executor interface
 │   ├── LiveHttpExecutor.java        # RestAssured (live server)
-│   └── EmbeddedSpringExecutor.java  # MockMvc (embedded)
+│   ├── MockMvcExecutor.java         # MockMvc (existing Spring context)
+│   └── EmbeddedSpringExecutor.java  # MockMvc (boots own context, for CLI)
 ├── generator/
 │   └── YamlGenerator.java           # Skeleton YAML generator
 ├── model/

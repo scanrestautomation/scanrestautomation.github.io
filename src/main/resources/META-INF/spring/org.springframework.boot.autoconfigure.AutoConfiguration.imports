@@ -1,1 +1,2 @@
 com.yubraj.test.scanrest.autoconfigure.ScanRestAutoConfiguration
+com.yubraj.test.scanrest.autoconfigure.ScanRestMockConfiguration

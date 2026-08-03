@@ -2,8 +2,8 @@ package com.yubraj.test.scanrest.autoconfigure;
 
 import com.yubraj.test.scanrest.config.YamlParser;
 import com.yubraj.test.scanrest.engine.VariableResolver;
-import com.yubraj.test.scanrest.executor.EmbeddedSpringExecutor;
 import com.yubraj.test.scanrest.executor.LiveHttpExecutor;
+import com.yubraj.test.scanrest.executor.MockMvcExecutor;
 import com.yubraj.test.scanrest.executor.TestExecutor;
 import com.yubraj.test.scanrest.generator.YamlGenerator;
 import com.yubraj.test.scanrest.model.ScannedEndpoint;
@@ -14,8 +14,12 @@ import com.yubraj.test.scanrest.scanner.EndpointScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.net.URL;
 import java.nio.file.Files;
@@ -26,13 +30,14 @@ import java.util.List;
 /**
  * Executes ScanRest tests within the Spring Boot lifecycle.
  *
- * <p>The YAML test file is resolved from the classpath first
- * (i.e. {@code src/test/resources/scanrest-tests.yml}), then falls back
- * to the project root.</p>
- *
- * <p>Automatically detects the running server port from the Spring
- * {@link Environment} (supports {@code local.server.port} for
- * {@code @SpringBootTest(webEnvironment = RANDOM_PORT)}).</p>
+ * <p>Supports two execution modes:</p>
+ * <ul>
+ *   <li><b>LIVE</b>: HTTP requests via RestAssured against a running server.
+ *       Auto-detects the server port from {@code local.server.port}.</li>
+ *   <li><b>MOCKMVC</b>: Uses Spring MockMvc from the existing application context.
+ *       Respects {@code @MockBean}, {@code @TestConfiguration}, {@code @ActiveProfiles},
+ *       and {@code @WebMvcTest} test slices.</li>
+ * </ul>
  *
  * <p>Can run tests:</p>
  * <ul>
@@ -51,19 +56,25 @@ public class ScanRestTestRunner {
     private final YamlGenerator yamlGenerator;
     private final TestReporter testReporter;
     private final Environment environment;
+    private final ApplicationContext applicationContext;
+    private final MockMvc injectedMockMvc; // may be null (only available in @WebMvcTest or manually configured)
 
     public ScanRestTestRunner(ScanRestProperties properties,
                                YamlParser yamlParser,
                                EndpointScanner endpointScanner,
                                YamlGenerator yamlGenerator,
                                TestReporter testReporter,
-                               Environment environment) {
+                               Environment environment,
+                               ApplicationContext applicationContext,
+                               MockMvc mockMvc) {
         this.properties = properties;
         this.yamlParser = yamlParser;
         this.endpointScanner = endpointScanner;
         this.yamlGenerator = yamlGenerator;
         this.testReporter = testReporter;
         this.environment = environment;
+        this.applicationContext = applicationContext;
+        this.injectedMockMvc = mockMvc;
     }
 
     /**
@@ -76,17 +87,22 @@ public class ScanRestTestRunner {
         }
 
         Path yamlPath = resolveYamlPath();
-        String resolvedBaseUrl = resolveBaseUrl();
+        String modeDisplay = properties.isMockMvcMode() ? "MOCKMVC" : "LIVE";
 
         log.info("==================================================");
         log.info("  ScanRest is ACTIVE");
         log.info("==================================================");
         log.info("  Test file     : {}", properties.getFile());
-        log.info("  Mode          : {}", properties.getMode());
-        log.info("  Base URL      : {}", resolvedBaseUrl);
+        log.info("  Mode          : {}", modeDisplay);
+        if (!properties.isMockMvcMode()) {
+            log.info("  Base URL      : {}", resolveBaseUrl());
+        }
         log.info("  Profile       : {}", properties.getProfile() != null ? properties.getProfile() : "(default)");
         log.info("  Run on startup: {}", properties.isRunOnStartup());
         log.info("  Fail on error : {}", properties.isFailOnError());
+        if (properties.isMockServices()) {
+            log.info("  Mock services : ENABLED");
+        }
 
         if (yamlPath != null) {
             log.info("  Test file     : FOUND ({})", yamlPath.toAbsolutePath());
@@ -145,9 +161,11 @@ public class ScanRestTestRunner {
                 suite.getConfig().setActiveProfile(properties.getProfile());
             }
 
-            // Override baseUrl: properties > auto-detected port > YAML config
-            String effectiveBaseUrl = resolveBaseUrl();
-            suite.getConfig().setBaseUrl(effectiveBaseUrl);
+            // Override baseUrl for LIVE mode
+            if (!properties.isMockMvcMode()) {
+                String effectiveBaseUrl = resolveBaseUrl();
+                suite.getConfig().setBaseUrl(effectiveBaseUrl);
+            }
 
             // Build resolver
             VariableResolver resolver = new VariableResolver(suite.getConfig().resolveVariables());
@@ -177,7 +195,7 @@ public class ScanRestTestRunner {
     }
 
     /**
-     * Resolve the effective base URL.
+     * Resolve the effective base URL for LIVE mode.
      * Priority:
      * 1. {@code scanrest.base-url} property (explicit override)
      * 2. Auto-detect from Spring's {@code local.server.port} (for @SpringBootTest RANDOM_PORT)
@@ -242,17 +260,43 @@ public class ScanRestTestRunner {
         return null;
     }
 
+    /**
+     * Create the appropriate test executor based on the configured mode.
+     */
     private TestExecutor createExecutor(Path yamlPath) {
-        return switch (properties.getMode()) {
-            case LIVE -> new LiveHttpExecutor(
-                    yamlPath.getParent() != null ? yamlPath.getParent() : Path.of("."));
-            case EMBEDDED -> {
-                log.warn("ScanRest: Embedded mode requires --app-class in CLI. " +
-                         "In Spring Boot context, use live mode or inject MockMvc directly.");
-                yield new LiveHttpExecutor(
-                        yamlPath.getParent() != null ? yamlPath.getParent() : Path.of("."));
-            }
-        };
+        Path basePath = yamlPath.getParent() != null ? yamlPath.getParent() : Path.of(".");
+
+        if (properties.isMockMvcMode()) {
+            return createMockMvcExecutor(basePath);
+        }
+
+        return new LiveHttpExecutor(basePath);
+    }
+
+    /**
+     * Create a MockMvcExecutor using the existing Spring context.
+     * Priority:
+     * 1. Use injected MockMvc bean (from @WebMvcTest or manual configuration)
+     * 2. Build MockMvc from the WebApplicationContext
+     */
+    private TestExecutor createMockMvcExecutor(Path basePath) {
+        // 1. Use injected MockMvc if available (e.g., from @WebMvcTest)
+        if (injectedMockMvc != null) {
+            log.info("ScanRest: Using injected MockMvc bean (from @WebMvcTest or @AutoConfigureMockMvc)");
+            return new MockMvcExecutor(injectedMockMvc, basePath);
+        }
+
+        // 2. Build MockMvc from the WebApplicationContext
+        if (applicationContext instanceof WebApplicationContext webContext) {
+            log.info("ScanRest: Building MockMvc from WebApplicationContext");
+            MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webContext).build();
+            return new MockMvcExecutor(mockMvc, basePath);
+        }
+
+        // 3. Fallback: context is not a WebApplicationContext
+        log.warn("ScanRest: MOCKMVC mode requires a WebApplicationContext. " +
+                 "Use @SpringBootTest or @WebMvcTest. Falling back to LIVE mode.");
+        return new LiveHttpExecutor(basePath);
     }
 
     private void autoGenerateYaml(Path yamlPath) {

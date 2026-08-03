@@ -14,8 +14,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * # Path to the YAML test specification file
  * scanrest.file=scanrest-tests.yml
  *
- * # Execution mode: live (HTTP against running server) or embedded (MockMvc)
- * scanrest.mode=embedded
+ * # Execution mode: live (HTTP) | mockmvc (Spring MockMvc) | embedded (deprecated alias for mockmvc)
+ * scanrest.mode=live
  *
  * # Active profile (overrides config.activeProfile in YAML)
  * scanrest.profile=dev
@@ -34,6 +34,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * # Run tests on application startup (only in test phase)
  * scanrest.run-on-startup=false
+ *
+ * # Auto-mock all @Service beans (for mockmvc mode)
+ * scanrest.mock-services=false
  * </pre>
  */
 @ConfigurationProperties(prefix = "scanrest")
@@ -51,9 +54,9 @@ public class ScanRestProperties {
     private String file = "scanrest-tests.yml";
 
     /**
-     * Execution mode: 'live' or 'embedded'.
+     * Execution mode: 'live', 'mockmvc', or 'embedded' (deprecated alias for mockmvc).
      */
-    private Mode mode = Mode.EMBEDDED;
+    private Mode mode = Mode.LIVE;
 
     /**
      * Active profile (overrides config.activeProfile from YAML).
@@ -85,8 +88,28 @@ public class ScanRestProperties {
      */
     private boolean runOnStartup = false;
 
+    /**
+     * Auto-mock all {@code @Service} beans with Mockito (for mockmvc mode).
+     * When enabled, ScanRest replaces service beans with mocks so controller
+     * tests can run without real service implementations.
+     */
+    private boolean mockServices = false;
+
     public enum Mode {
-        LIVE, EMBEDDED
+        /** Execute tests via HTTP against a running server. */
+        LIVE,
+        /** Execute tests using Spring MockMvc from the existing application context. */
+        MOCKMVC,
+        /** @deprecated Use {@link #MOCKMVC} instead. */
+        @Deprecated
+        EMBEDDED
+    }
+
+    /**
+     * Returns true if the mode uses MockMvc (MOCKMVC or deprecated EMBEDDED).
+     */
+    public boolean isMockMvcMode() {
+        return mode == Mode.MOCKMVC || mode == Mode.EMBEDDED;
     }
 
     // Getters and setters
@@ -117,4 +140,7 @@ public class ScanRestProperties {
 
     public boolean isRunOnStartup() { return runOnStartup; }
     public void setRunOnStartup(boolean runOnStartup) { this.runOnStartup = runOnStartup; }
+
+    public boolean isMockServices() { return mockServices; }
+    public void setMockServices(boolean mockServices) { this.mockServices = mockServices; }
 }

@@ -2,19 +2,19 @@ package com.yubraj.test.scanrest.autoconfigure;
 
 import com.yubraj.test.scanrest.config.YamlParser;
 import com.yubraj.test.scanrest.engine.AssertionEngine;
-import com.yubraj.test.scanrest.engine.VariableResolver;
-import com.yubraj.test.scanrest.executor.LiveHttpExecutor;
-import com.yubraj.test.scanrest.executor.TestExecutor;
 import com.yubraj.test.scanrest.generator.YamlGenerator;
 import com.yubraj.test.scanrest.report.TestReporter;
 import com.yubraj.test.scanrest.scanner.EndpointScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
+import org.springframework.test.web.servlet.MockMvc;
 
 /**
  * Spring Boot auto-configuration for ScanRest.
@@ -27,7 +27,7 @@ import org.springframework.core.env.Environment;
  * <pre>
  * scanrest.enabled=true
  * scanrest.file=scanrest-tests.yml
- * scanrest.mode=embedded
+ * scanrest.mode=mockmvc
  * scanrest.profile=dev
  * scanrest.fail-on-error=true
  * </pre>
@@ -70,7 +70,10 @@ public class ScanRestAutoConfiguration {
                                                   EndpointScanner endpointScanner,
                                                   YamlGenerator yamlGenerator,
                                                   TestReporter testReporter,
-                                                  Environment environment) {
-        return new ScanRestTestRunner(properties, yamlParser, endpointScanner, yamlGenerator, testReporter, environment);
+                                                  Environment environment,
+                                                  ApplicationContext applicationContext,
+                                                  @Autowired(required = false) MockMvc mockMvc) {
+        return new ScanRestTestRunner(properties, yamlParser, endpointScanner,
+                yamlGenerator, testReporter, environment, applicationContext, mockMvc);
     }
 }
