@@ -24,7 +24,7 @@
         <classgraph.version>4.8.174</classgraph.version>
         <slf4j.version>2.0.13</slf4j.version>
         <logback.version>1.5.6</logback.version>
-        <junit.version>5.10.3</junit.version>
+        <junit.version>6.0.3</junit.version>
     </properties>
 
     <dependencies>
@@ -122,12 +122,12 @@
             <version>${logback.version}</version>
         </dependency>
 
-        <!-- Test -->
+        <!-- JUnit 5 API (optional - for @TestFactory / DynamicTest integration) -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
+            <artifactId>junit-jupiter-api</artifactId>
             <version>${junit.version}</version>
-            <scope>test</scope>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 

@@ -104,6 +104,12 @@ public class MockMvcExecutor implements TestExecutor {
         return results;
     }
 
+    @Override
+    public TestResult executeSingle(TestSpec test, Map<String, String> globalHeaders,
+                                    VariableResolver resolver, ExpectSpec expect, String displayName) {
+        return executeTest(globalHeaders, test, resolver, expect, displayName);
+    }
+
     private TestResult executeTest(Map<String, String> globalHeaders,
                                     TestSpec test, VariableResolver resolver,
                                     ExpectSpec expect, String displayName) {

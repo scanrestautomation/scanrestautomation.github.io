@@ -6,11 +6,11 @@ import com.yubraj.test.scanrest.executor.LiveHttpExecutor;
 import com.yubraj.test.scanrest.executor.MockMvcExecutor;
 import com.yubraj.test.scanrest.executor.TestExecutor;
 import com.yubraj.test.scanrest.generator.YamlGenerator;
-import com.yubraj.test.scanrest.model.ScannedEndpoint;
-import com.yubraj.test.scanrest.model.TestResult;
-import com.yubraj.test.scanrest.model.TestSuiteSpec;
+import com.yubraj.test.scanrest.model.*;
 import com.yubraj.test.scanrest.report.TestReporter;
 import com.yubraj.test.scanrest.scanner.EndpointScanner;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.DynamicTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -25,7 +25,10 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
+import java.time.Duration;
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Executes ScanRest tests within the Spring Boot lifecycle.
@@ -43,6 +46,7 @@ import java.util.List;
  * <ul>
  *   <li>Automatically on startup ({@code scanrest.run-on-startup=true})</li>
  *   <li>Programmatically by injecting this bean and calling {@link #runTests()}</li>
+ *   <li>As individual JUnit tests via {@link #toDynamicTests()} with {@code @TestFactory}</li>
  *   <li>From a JUnit test via {@link EnableScanRest} annotation</li>
  * </ul>
  */
@@ -132,11 +136,153 @@ public class ScanRestTestRunner {
     }
 
     /**
-     * Run all tests defined in the YAML file.
+     * Run all tests defined in the YAML file as a batch.
+     * Results are printed to console and optionally written to a report file.
      *
      * @return list of test results
      */
     public List<TestResult> runTests() {
+        try {
+            TestSuiteSpec suite = loadSuite();
+            if (suite == null) return List.of();
+
+            VariableResolver resolver = new VariableResolver(suite.getConfig().resolveVariables());
+            TestExecutor executor = createExecutor(resolveYamlPath());
+
+            List<TestResult> results = executor.execute(suite, resolver);
+
+            testReporter.printConsoleReport(results, System.out);
+            if (properties.getReportPath() != null) {
+                testReporter.writeFileReport(results, Path.of(properties.getReportPath()));
+            }
+
+            return results;
+
+        } catch (Exception e) {
+            log.error("ScanRest: Error running tests: {}", e.getMessage(), e);
+            TestResult errorResult = new TestResult();
+            errorResult.setStatus(TestResult.Status.ERROR);
+            errorResult.setErrorMessage(e.getMessage());
+            errorResult.setDuration(Duration.ZERO);
+            return List.of(errorResult);
+        }
+    }
+
+    /**
+     * Generate JUnit 5 {@link DynamicTest} instances — one per YAML test case.
+     * Each test case appears as an individual test in JUnit reports, Maven Surefire,
+     * and IDE test runners.
+     *
+     * <p>Usage:</p>
+     * <pre>
+     * &#064;SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+     * &#064;EnableScanRest
+     * class ApiTests {
+     *     &#064;Autowired
+     *     private ScanRestTestRunner scanRestRunner;
+     *
+     *     &#064;TestFactory
+     *     Collection&lt;DynamicTest&gt; apiTests() {
+     *         return scanRestRunner.toDynamicTests();
+     *     }
+     * }
+     * </pre>
+     *
+     * <p>Supports:</p>
+     * <ul>
+     *   <li>Variable chaining ({@code save} / {@code dependsOn})</li>
+     *   <li>Parameterized tests (each variant is a separate DynamicTest)</li>
+     *   <li>Dependent tests are skipped (via JUnit Assumptions) when prerequisites fail</li>
+     * </ul>
+     *
+     * @return collection of DynamicTest instances, one per YAML test case
+     */
+    public Collection<DynamicTest> toDynamicTests() {
+        TestSuiteSpec suite = loadSuite();
+        if (suite == null) {
+            return List.of();
+        }
+
+        VariableResolver resolver = new VariableResolver(suite.getConfig().resolveVariables());
+        Map<String, String> globalHeaders = resolver.resolveMap(suite.getConfig().getGlobalHeaders());
+        TestExecutor executor = createExecutor(resolveYamlPath());
+
+        // For LIVE mode, set the baseUrl on the executor
+        if (executor instanceof LiveHttpExecutor liveExecutor) {
+            liveExecutor.setBaseUrl(suite.getConfig().resolveBaseUrl());
+        }
+
+        // Shared state for test chaining (dependsOn / save)
+        Map<String, TestResult> completedTests = new LinkedHashMap<>();
+        List<DynamicTest> dynamicTests = new ArrayList<>();
+
+        for (TestSpec test : suite.getTests()) {
+            if (test.isParameterized()) {
+                // Expand parameterized tests into individual DynamicTests
+                for (int i = 0; i < test.getParameterized().size(); i++) {
+                    Map<String, Object> params = test.getParameterized().get(i);
+                    final int index = i;
+                    String name = "%s [%d] %s".formatted(test.displayName(), i + 1, params);
+
+                    dynamicTests.add(DynamicTest.dynamicTest(name, () -> {
+                        VariableResolver paramResolver = resolver.copy();
+                        ExpectSpec paramExpect = null;
+                        for (var entry : params.entrySet()) {
+                            if ("expect".equals(entry.getKey())) {
+                                paramExpect = buildExpectFromParam(entry.getValue());
+                            } else {
+                                paramResolver.set(entry.getKey(), String.valueOf(entry.getValue()));
+                            }
+                        }
+
+                        TestResult result = executor.executeSingle(test, globalHeaders, paramResolver,
+                                paramExpect != null ? paramExpect : test.getExpect(), name);
+                        completedTests.put(name, result);
+                        assertTestResult(result);
+                    }));
+                }
+            } else {
+                String name = test.displayName();
+
+                dynamicTests.add(DynamicTest.dynamicTest(name, () -> {
+                    // Check dependency
+                    if (test.getDependsOn() != null) {
+                        TestResult dep = completedTests.get(test.getDependsOn());
+                        Assumptions.assumeTrue(dep != null && dep.isPassed(),
+                                "Skipped: dependency '%s' not met".formatted(test.getDependsOn()));
+                    }
+
+                    TestResult result = executor.executeSingle(test, globalHeaders, resolver,
+                            test.getExpect(), name);
+                    completedTests.put(name, result);
+                    assertTestResult(result);
+                }));
+            }
+        }
+
+        return dynamicTests;
+    }
+
+    /**
+     * Assert a TestResult, failing the JUnit test if it didn't pass.
+     */
+    private void assertTestResult(TestResult result) {
+        if (result.isPassed()) return;
+
+        if (result.getStatus() == TestResult.Status.ERROR) {
+            fail("Test error: " + result.getErrorMessage());
+        }
+
+        if (result.getStatus() == TestResult.Status.FAILED) {
+            String failureDetails = String.join("\n  ", result.getFailures());
+            fail("Assertion failures:\n  " + failureDetails);
+        }
+    }
+
+    /**
+     * Load and configure the test suite from YAML.
+     */
+    private TestSuiteSpec loadSuite() {
         try {
             Path yamlPath = resolveYamlPath();
 
@@ -150,10 +296,9 @@ public class ScanRestTestRunner {
 
             if (yamlPath == null || !Files.exists(yamlPath)) {
                 log.warn("ScanRest: Test file '{}' not found in src/test/resources/. Skipping tests.", properties.getFile());
-                return List.of();
+                return null;
             }
 
-            // Parse YAML
             TestSuiteSpec suite = yamlParser.parse(yamlPath);
 
             // Override profile from properties
@@ -167,31 +312,29 @@ public class ScanRestTestRunner {
                 suite.getConfig().setBaseUrl(effectiveBaseUrl);
             }
 
-            // Build resolver
-            VariableResolver resolver = new VariableResolver(suite.getConfig().resolveVariables());
-
-            // Create executor
-            TestExecutor executor = createExecutor(yamlPath);
-
-            // Execute
-            List<TestResult> results = executor.execute(suite, resolver);
-
-            // Report
-            testReporter.printConsoleReport(results, System.out);
-            if (properties.getReportPath() != null) {
-                testReporter.writeFileReport(results, Path.of(properties.getReportPath()));
-            }
-
-            return results;
+            return suite;
 
         } catch (Exception e) {
-            log.error("ScanRest: Error running tests: {}", e.getMessage(), e);
-            TestResult errorResult = new TestResult();
-            errorResult.setStatus(TestResult.Status.ERROR);
-            errorResult.setErrorMessage(e.getMessage());
-            errorResult.setDuration(java.time.Duration.ZERO);
-            return List.of(errorResult);
+            log.error("ScanRest: Error loading test suite: {}", e.getMessage(), e);
+            return null;
         }
+    }
+
+    /**
+     * Build an ExpectSpec from a parameterized test's 'expect' value.
+     */
+    @SuppressWarnings("unchecked")
+    private ExpectSpec buildExpectFromParam(Object value) {
+        ExpectSpec expect = new ExpectSpec();
+        if (value instanceof Integer status) {
+            expect.setStatus(status);
+        } else if (value instanceof Map<?, ?> map) {
+            Map<String, Object> expectMap = (Map<String, Object>) map;
+            if (expectMap.containsKey("status")) {
+                expect.setStatus(((Number) expectMap.get("status")).intValue());
+            }
+        }
+        return expect;
     }
 
     /**
@@ -264,7 +407,7 @@ public class ScanRestTestRunner {
      * Create the appropriate test executor based on the configured mode.
      */
     private TestExecutor createExecutor(Path yamlPath) {
-        Path basePath = yamlPath.getParent() != null ? yamlPath.getParent() : Path.of(".");
+        Path basePath = yamlPath != null && yamlPath.getParent() != null ? yamlPath.getParent() : Path.of(".");
 
         if (properties.isMockMvcMode()) {
             return createMockMvcExecutor(basePath);

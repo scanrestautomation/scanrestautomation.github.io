@@ -110,6 +110,14 @@ public class EmbeddedSpringExecutor implements TestExecutor {
         return results;
     }
 
+    @Override
+    public TestResult executeSingle(TestSpec test, Map<String, String> globalHeaders,
+                                    VariableResolver resolver, ExpectSpec expect, String displayName) {
+        throw new UnsupportedOperationException(
+                "EmbeddedSpringExecutor does not support single-test execution. " +
+                "Use MockMvcExecutor or LiveHttpExecutor with @TestFactory.");
+    }
+
     private TestResult executeTest(MockMvc mockMvc, Map<String, String> globalHeaders,
                                     TestSpec test, VariableResolver resolver,
                                     ExpectSpec expect, String displayName) {

@@ -25,6 +25,7 @@ public class LiveHttpExecutor implements TestExecutor {
     private final AssertionEngine assertionEngine = new AssertionEngine();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Path basePath;
+    private String baseUrl; // set externally for executeSingle()
 
     public LiveHttpExecutor() {
         this.basePath = Path.of(".");
@@ -32,6 +33,10 @@ public class LiveHttpExecutor implements TestExecutor {
 
     public LiveHttpExecutor(Path basePath) {
         this.basePath = basePath;
+    }
+
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
     }
 
     @Override
@@ -101,6 +106,15 @@ public class LiveHttpExecutor implements TestExecutor {
         }
 
         return results;
+    }
+
+    @Override
+    public TestResult executeSingle(TestSpec test, Map<String, String> globalHeaders,
+                                    VariableResolver resolver, ExpectSpec expect, String displayName) {
+        if (this.baseUrl == null) {
+            throw new IllegalStateException("baseUrl must be set before calling executeSingle()");
+        }
+        return executeTest(this.baseUrl, globalHeaders, test, resolver, expect, displayName);
     }
 
     private TestResult executeTest(String baseUrl, Map<String, String> globalHeaders,
