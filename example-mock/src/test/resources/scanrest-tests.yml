@@ -1,0 +1,115 @@
+# ============================================
+# ScanRest Test Specification - Demo User API (Mocked)
+# ============================================
+# These tests run against mocked services via MockMvc.
+# The UserService is replaced by a Mockito mock in the test class.
+
+config:
+  name: "User Service API Tests (Mocked)"
+  baseUrl: "http://localhost:8080"
+
+  globalHeaders:
+    Content-Type: "application/json"
+
+  variables: {}
+
+# ============================================
+# TESTS
+# ============================================
+tests:
+
+  # -------- GET all users (mock returns 1 user) --------
+  - name: "List all users"
+    path: /api/users
+    method: GET
+    expect:
+      status: 200
+      body:
+        $[0].id: NOT_NULL
+        $[0].firstname: "John"
+        $[0].email: "john@example.com"
+
+  # -------- GET user by ID (mock returns user) --------
+  - name: "Get user by ID"
+    path: /api/users/1
+    method: GET
+    expect:
+      status: 200
+      body:
+        $.id: 1
+        $.firstname: "John"
+        $.lastname: "Doe"
+        $.email: "john@example.com"
+        $.status: "ACTIVE"
+
+  # -------- GET non-existent user (mock returns empty) --------
+  - name: "Get non-existent user"
+    path: /api/users/99999
+    method: GET
+    expect:
+      status: 404
+
+  # -------- CREATE a new user --------
+  - name: "Create user"
+    path: /api/users
+    method: POST
+    request:
+      body:
+        firstname: "John"
+        lastname: "Doe"
+        email: "john@example.com"
+        phone: "1234567890"
+        status: "ACTIVE"
+    expect:
+      status: 201
+      body:
+        $.id: NOT_NULL
+        $.firstname: "John"
+        $.lastname: "Doe"
+        $.email: "john@example.com"
+
+  # -------- UPDATE user --------
+  - name: "Update user"
+    path: /api/users/1
+    method: PUT
+    request:
+      body:
+        firstname: "Jane"
+        lastname: "Doe"
+        email: "jane@example.com"
+        phone: "9876543210"
+        status: "ACTIVE"
+    expect:
+      status: 200
+      body:
+        $.id: 1
+        $.firstname: "Jane"
+        $.email: "jane@example.com"
+
+  # -------- UPDATE non-existent user --------
+  - name: "Update non-existent user"
+    path: /api/users/99999
+    method: PUT
+    request:
+      body:
+        firstname: "Ghost"
+        lastname: "User"
+        email: "ghost@example.com"
+        phone: "0000000000"
+        status: "INACTIVE"
+    expect:
+      status: 404
+
+  # -------- DELETE user --------
+  - name: "Delete user"
+    path: /api/users/1
+    method: DELETE
+    expect:
+      status: 204
+
+  # -------- DELETE non-existent user --------
+  - name: "Delete non-existent user"
+    path: /api/users/99999
+    method: DELETE
+    expect:
+      status: 404
