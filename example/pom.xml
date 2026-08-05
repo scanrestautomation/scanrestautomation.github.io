@@ -52,7 +52,7 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.yubraj.test</groupId>
+			<groupId>io.scanrest</groupId>
 			<artifactId>scanrest</artifactId>
 			<version>1.0-SNAPSHOT</version>
 		</dependency>

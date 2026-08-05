@@ -6,7 +6,7 @@
         </encoder>
     </appender>
 
-    <logger name="com.yubraj.test.scanrest" level="INFO"/>
+    <logger name="io.scanrest" level="INFO"/>
     <logger name="io.github.classgraph" level="WARN"/>
     <logger name="io.restassured" level="WARN"/>
     <logger name="org.springframework" level="WARN"/>

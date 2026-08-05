@@ -1,0 +1,1496 @@
+<meta charset="UTF-8">
+<title>ScanRest &mdash; Automated API Testing for Spring Boot</title>
+<style>
+  @font-face {
+    font-family: 'DocSerif';
+    src: local('Georgia'), local('Times New Roman');
+  }
+
+  :root {
+    --bg: #FAFAF7;
+    --bg-alt: #F0EDE6;
+    --bg-code: #2B303B;
+    --fg: #2C2C2C;
+    --fg-muted: #6B6B6B;
+    --fg-code: #D8DEE9;
+    --accent: #C97B2A;
+    --accent-light: rgba(201, 123, 42, 0.12);
+    --accent-2: #4A7C8F;
+    --accent-2-light: rgba(74, 124, 143, 0.10);
+    --border: #D8D4CC;
+    --border-light: #E8E4DC;
+    --green: #5A9A6B;
+    --red: #C25450;
+    --yellow: #C9963A;
+    --sidebar-bg: #2B303B;
+    --sidebar-fg: #D8DEE9;
+    --sidebar-accent: #EBCB8B;
+    --sidebar-hover: rgba(235, 203, 139, 0.08);
+    --diagram-bg: #FAFAF7;
+    --diagram-stroke: #3B3B3B;
+    --diagram-fill: #F0EDE6;
+    --diagram-accent: #C97B2A;
+    --diagram-accent2: #4A7C8F;
+    --diagram-text: #2C2C2C;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1D2128;
+      --bg-alt: #262A33;
+      --bg-code: #1A1E25;
+      --fg: #D4D4D4;
+      --fg-muted: #8B8B8B;
+      --fg-code: #D8DEE9;
+      --accent: #EBCB8B;
+      --accent-light: rgba(235, 203, 139, 0.10);
+      --accent-2: #88C0D0;
+      --accent-2-light: rgba(136, 192, 208, 0.08);
+      --border: #3B3F48;
+      --border-light: #31353E;
+      --sidebar-bg: #16191F;
+      --sidebar-fg: #D8DEE9;
+      --sidebar-accent: #EBCB8B;
+      --sidebar-hover: rgba(235, 203, 139, 0.06);
+      --diagram-bg: #262A33;
+      --diagram-stroke: #8B8B8B;
+      --diagram-fill: #31353E;
+      --diagram-accent: #EBCB8B;
+      --diagram-accent2: #88C0D0;
+      --diagram-text: #D4D4D4;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1D2128;
+    --bg-alt: #262A33;
+    --bg-code: #1A1E25;
+    --fg: #D4D4D4;
+    --fg-muted: #8B8B8B;
+    --fg-code: #D8DEE9;
+    --accent: #EBCB8B;
+    --accent-light: rgba(235, 203, 139, 0.10);
+    --accent-2: #88C0D0;
+    --accent-2-light: rgba(136, 192, 208, 0.08);
+    --border: #3B3F48;
+    --border-light: #31353E;
+    --sidebar-bg: #16191F;
+    --sidebar-fg: #D8DEE9;
+    --sidebar-accent: #EBCB8B;
+    --sidebar-hover: rgba(235, 203, 139, 0.06);
+    --diagram-bg: #262A33;
+    --diagram-stroke: #8B8B8B;
+    --diagram-fill: #31353E;
+    --diagram-accent: #EBCB8B;
+    --diagram-accent2: #88C0D0;
+    --diagram-text: #D4D4D4;
+  }
+  :root[data-theme="light"] {
+    --bg: #FAFAF7;
+    --bg-alt: #F0EDE6;
+    --bg-code: #2B303B;
+    --fg: #2C2C2C;
+    --fg-muted: #6B6B6B;
+    --fg-code: #D8DEE9;
+    --accent: #C97B2A;
+    --accent-light: rgba(201, 123, 42, 0.12);
+    --accent-2: #4A7C8F;
+    --accent-2-light: rgba(74, 124, 143, 0.10);
+    --border: #D8D4CC;
+    --border-light: #E8E4DC;
+    --sidebar-bg: #2B303B;
+    --sidebar-fg: #D8DEE9;
+    --sidebar-accent: #EBCB8B;
+    --sidebar-hover: rgba(235, 203, 139, 0.08);
+    --diagram-bg: #FAFAF7;
+    --diagram-stroke: #3B3B3B;
+    --diagram-fill: #F0EDE6;
+    --diagram-accent: #C97B2A;
+    --diagram-accent2: #4A7C8F;
+    --diagram-text: #2C2C2C;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'DocSerif', Georgia, 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.72;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+  }
+
+  /* -- Sidebar -- */
+  .sidebar {
+    background: var(--sidebar-bg);
+    color: var(--sidebar-fg);
+    padding: 2rem 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    border-right: 1px solid rgba(255,255,255,0.06);
+  }
+  .sidebar-brand {
+    padding: 0 1.5rem 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 1rem;
+  }
+  .sidebar-brand h1 {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sidebar-accent);
+    margin: 0 0 0.25rem;
+  }
+  .sidebar-brand span {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.72rem;
+    color: rgba(216, 222, 233, 0.5);
+    letter-spacing: 0.03em;
+  }
+  .sidebar nav { padding: 0 0.75rem; }
+  .sidebar nav a {
+    display: block;
+    padding: 0.45rem 0.75rem;
+    color: rgba(216, 222, 233, 0.7);
+    text-decoration: none;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.82rem;
+    border-radius: 4px;
+    transition: background 0.15s, color 0.15s;
+    line-height: 1.4;
+  }
+  .sidebar nav a:hover, .sidebar nav a:focus-visible {
+    background: var(--sidebar-hover);
+    color: var(--sidebar-accent);
+    outline: none;
+  }
+  .sidebar nav .sep {
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    margin: 0.6rem 0.75rem;
+  }
+  .sidebar nav .label {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(216, 222, 233, 0.35);
+    padding: 0.8rem 0.75rem 0.3rem;
+  }
+
+  /* -- Main -- */
+  .main {
+    max-width: 54rem;
+    padding: 3rem 3.5rem 6rem;
+  }
+
+  /* -- Hero -- */
+  .hero {
+    margin-bottom: 3.5rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-eyebrow {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+  }
+  .hero h2 {
+    font-size: 2.1rem;
+    line-height: 1.2;
+    font-weight: 400;
+    margin: 0 0 1rem;
+    text-wrap: balance;
+  }
+  .hero p {
+    font-size: 1.05rem;
+    color: var(--fg-muted);
+    max-width: 40rem;
+    margin: 0;
+  }
+  .hero-badges {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .badge {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 0.3rem 0.65rem;
+    border-radius: 3px;
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+  .badge.alt {
+    background: var(--accent-2-light);
+    color: var(--accent-2);
+  }
+
+  /* -- Chapters -- */
+  .chapter {
+    margin-bottom: 3.5rem;
+    scroll-margin-top: 2rem;
+  }
+  .chapter-num {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.4rem;
+  }
+  .chapter h3 {
+    font-size: 1.55rem;
+    font-weight: 400;
+    margin: 0 0 1.25rem;
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+  .chapter h4 {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    margin: 2rem 0 0.75rem;
+    color: var(--fg);
+  }
+  .chapter p {
+    margin: 0 0 1rem;
+    max-width: 42rem;
+  }
+
+  /* -- Code -- */
+  pre {
+    background: var(--bg-code);
+    color: var(--fg-code);
+    padding: 1.25rem 1.5rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.78rem;
+    line-height: 1.65;
+    margin: 1rem 0 1.5rem;
+    border: 1px solid var(--border-light);
+  }
+  code {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.82em;
+    background: var(--accent-light);
+    color: var(--accent);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+  }
+  pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    border-radius: 0;
+  }
+  .kw { color: #B48EAD; }
+  .str { color: #A3BE8C; }
+  .cm { color: #616E88; }
+  .ann { color: #D08770; }
+  .num { color: #EBCB8B; }
+  .typ { color: #8FBCBB; }
+  .fn { color: #88C0D0; }
+
+  /* -- Figures -- */
+  figure {
+    margin: 1.5rem 0 2rem;
+    overflow-x: auto;
+  }
+  figure svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+  figcaption {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.75rem;
+    color: var(--fg-muted);
+    margin-top: 0.75rem;
+    font-style: italic;
+  }
+
+  /* -- Tables -- */
+  .table-wrap {
+    overflow-x: auto;
+    margin: 1rem 0 1.5rem;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.82rem;
+  }
+  th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    padding: 0.6rem 1rem;
+    border-bottom: 2px solid var(--border);
+  }
+  td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: top;
+  }
+
+  /* -- Callouts -- */
+  .callout {
+    background: var(--accent-light);
+    border-left: 3px solid var(--accent);
+    padding: 1rem 1.25rem;
+    margin: 1rem 0 1.5rem;
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9rem;
+  }
+  .callout.info {
+    background: var(--accent-2-light);
+    border-left-color: var(--accent-2);
+  }
+  .callout strong {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--accent);
+  }
+  .callout.info strong { color: var(--accent-2); }
+
+  /* -- Step lists -- */
+  .steps {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0 1.5rem;
+    counter-reset: step;
+  }
+  .steps li {
+    counter-increment: step;
+    padding: 0.75rem 0 0.75rem 2.5rem;
+    position: relative;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .steps li:last-child { border-bottom: none; }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0.75rem;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .steps li strong {
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 0.85rem;
+  }
+
+  /* -- Matcher grid -- */
+  .matcher-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.5rem;
+    margin: 1rem 0 1.5rem;
+  }
+  .matcher-item {
+    background: var(--bg-alt);
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    padding: 0.6rem 0.8rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.76rem;
+    color: var(--accent);
+  }
+  .matcher-item span {
+    display: block;
+    font-family: system-ui, sans-serif;
+    font-size: 0.7rem;
+    color: var(--fg-muted);
+    margin-top: 0.2rem;
+  }
+
+  /* -- Responsive -- */
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar {
+      position: relative;
+      height: auto;
+      padding: 1.5rem 0 1rem;
+    }
+    .main { padding: 2rem 1.5rem 4rem; }
+    .hero h2 { font-size: 1.6rem; }
+  }
+</style>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <h1>ScanRest</h1>
+      <span>v1.0 &middot; Tutorial & Reference</span>
+    </div>
+    <nav>
+      <div class="label">Getting Started</div>
+      <a href="#overview">Overview</a>
+      <a href="#quick-start">Quick Start</a>
+      <div class="sep"></div>
+      <div class="label">Architecture</div>
+      <a href="#architecture">System Architecture</a>
+      <a href="#patterns">Design Patterns</a>
+      <a href="#execution-flow">Execution Flow</a>
+      <div class="sep"></div>
+      <div class="label">Core Concepts</div>
+      <a href="#yaml-spec">YAML Test Specification</a>
+      <a href="#execution-modes">Execution Modes</a>
+      <a href="#assertions">Assertions & Matchers</a>
+      <a href="#chaining">Test Chaining</a>
+      <div class="sep"></div>
+      <div class="label">Advanced</div>
+      <a href="#profiles">Profiles & Variables</a>
+      <a href="#parameterized">Parameterized Tests</a>
+      <a href="#auto-mock">Auto-Mock Services</a>
+      <a href="#cli">CLI Reference</a>
+      <a href="#strategies">Testing Strategies</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <!-- =========== HERO =========== -->
+    <header class="hero">
+      <div class="hero-eyebrow">Tutorial & Architectural Guide</div>
+      <h2>ScanRest: Declarative API Testing for Spring Boot</h2>
+      <p>ScanRest scans your Spring controllers, generates YAML test specifications, and executes them as first-class JUnit 5 tests &mdash; no hand-written test methods required. This guide covers the architecture, patterns, and every feature of the library.</p>
+      <div class="hero-badges">
+        <span class="badge">Java 21</span>
+        <span class="badge">Spring Boot 4.1</span>
+        <span class="badge alt">JUnit 5</span>
+        <span class="badge alt">RestAssured</span>
+        <span class="badge">YAML-driven</span>
+      </div>
+    </header>
+
+    <!-- =========== CH 1: OVERVIEW =========== -->
+    <section class="chapter" id="overview">
+      <div class="chapter-num">Chapter 1</div>
+      <h3>Overview</h3>
+      <p>ScanRest is an automated API testing library built for Spring Boot applications. The core idea: your controllers already declare their endpoints through annotations &mdash; ScanRest reads those declarations, builds a test plan from a YAML file, and runs it.</p>
+
+      <p>The library operates in three modes. <strong>LIVE</strong> sends real HTTP requests via RestAssured to a running server. <strong>MOCKMVC</strong> uses Spring's MockMvc to test controllers in-process, with full support for mocked services. <strong>EMBEDDED</strong> boots its own Spring context for standalone execution.</p>
+
+      <p>Tests are defined declaratively in YAML &mdash; from one-liners like <code>GET /api/users: 200</code> to full specifications with headers, bodies, JSONPath assertions, schema validation, and test chaining. ScanRest converts each YAML entry into a JUnit 5 <code>DynamicTest</code>, so every test case appears individually in your IDE and CI reports.</p>
+
+      <div class="callout">
+        <strong>Key Benefit</strong>
+        You define <em>what</em> to test in YAML. ScanRest handles <em>how</em> to execute, assert, and report. When your API evolves, you update the YAML &mdash; not dozens of test classes.
+      </div>
+    </section>
+
+    <!-- =========== CH 2: QUICK START =========== -->
+    <section class="chapter" id="quick-start">
+      <div class="chapter-num">Chapter 2</div>
+      <h3>Quick Start</h3>
+
+      <h4>Add the dependency</h4>
+<pre><code><span class="kw">&lt;dependency&gt;</span>
+  <span class="kw">&lt;groupId&gt;</span><span class="str">io.scanrest</span><span class="kw">&lt;/groupId&gt;</span>
+  <span class="kw">&lt;artifactId&gt;</span><span class="str">scanrest</span><span class="kw">&lt;/artifactId&gt;</span>
+  <span class="kw">&lt;version&gt;</span><span class="num">1.0-SNAPSHOT</span><span class="kw">&lt;/version&gt;</span>
+  <span class="kw">&lt;scope&gt;</span><span class="str">test</span><span class="kw">&lt;/scope&gt;</span>
+<span class="kw">&lt;/dependency&gt;</span></code></pre>
+
+      <h4>Enable ScanRest in your test</h4>
+<pre><code><span class="ann">@SpringBootTest</span>(webEnvironment = SpringBootTest.WebEnvironment.<span class="num">RANDOM_PORT</span>)
+<span class="ann">@EnableScanRest</span>
+<span class="kw">class</span> <span class="typ">ApiTests</span> {
+
+    <span class="ann">@Autowired</span>
+    <span class="kw">private</span> <span class="typ">ScanRestTestRunner</span> runner;
+
+    <span class="ann">@TestFactory</span>
+    <span class="typ">Collection</span>&lt;<span class="typ">DynamicTest</span>&gt; <span class="fn">apiTests</span>() {
+        <span class="kw">return</span> runner.<span class="fn">toDynamicTests</span>();
+    }
+}</code></pre>
+
+      <h4>Write your YAML test file</h4>
+      <p>Place a file at <code>src/test/resources/auto-tests.yml</code>:</p>
+<pre><code><span class="cm"># Simple format &mdash; one line per test</span>
+<span class="kw">tests:</span>
+  - <span class="str">GET /api/users</span>: <span class="num">200</span>
+  - <span class="str">GET /api/users/999</span>: <span class="num">404</span>
+
+  <span class="cm"># Detailed format &mdash; full control</span>
+  - <span class="kw">name:</span> <span class="str">"Create a user"</span>
+    <span class="kw">method:</span> POST
+    <span class="kw">path:</span> /api/users
+    <span class="kw">request:</span>
+      <span class="kw">body:</span>
+        <span class="kw">name:</span> <span class="str">"Alice"</span>
+        <span class="kw">email:</span> <span class="str">"alice@test.com"</span>
+    <span class="kw">expect:</span>
+      <span class="kw">status:</span> <span class="num">201</span>
+      <span class="kw">body:</span>
+        <span class="str">$.name</span>: <span class="str">"Alice"</span>
+        <span class="str">$.id</span>: <span class="str">NOT_NULL</span></code></pre>
+
+      <ol class="steps">
+        <li><strong>Add the Maven dependency</strong> to your Spring Boot project's <code>pom.xml</code> with test scope.</li>
+        <li><strong>Annotate your test class</strong> with <code>@EnableScanRest</code> and inject <code>ScanRestTestRunner</code>.</li>
+        <li><strong>Create a YAML file</strong> describing your API tests &mdash; use simple format for quick checks, detailed format for complex scenarios.</li>
+        <li><strong>Run with Maven or your IDE.</strong> Each YAML entry becomes a separate JUnit test in the results.</li>
+      </ol>
+    </section>
+
+    <!-- =========== CH 3: ARCHITECTURE =========== -->
+    <section class="chapter" id="architecture">
+      <div class="chapter-num">Chapter 3</div>
+      <h3>System Architecture</h3>
+      <p>ScanRest is organized into five subsystems: the <strong>Scanner</strong> discovers endpoints, the <strong>Generator</strong> produces YAML skeletons, the <strong>Parser</strong> reads YAML into test models, the <strong>Engine</strong> executes tests and evaluates assertions, and the <strong>Reporter</strong> formats results. The Spring auto-configuration layer wires these together.</p>
+
+      <figure>
+        <svg viewBox="0 0 720 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ScanRest system architecture: Scanner, Generator, Parser, Engine, and Reporter subsystems connected through the TestRunner orchestrator">
+          <defs>
+            <marker id="ah" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="var(--diagram-stroke)"/>
+            </marker>
+            <marker id="ah-acc" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="var(--diagram-accent)"/>
+            </marker>
+          </defs>
+
+          <!-- Background regions -->
+          <rect x="10" y="10" width="700" height="100" rx="6" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+          <text x="24" y="32" font-family="system-ui, sans-serif" font-size="9" fill="var(--diagram-accent)" font-weight="600" letter-spacing="0.1em">SPRING BOOT APPLICATION</text>
+
+          <!-- Controller boxes -->
+          <rect x="30" y="44" width="130" height="50" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="95" y="65" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">@RestController</text>
+          <text x="95" y="80" font-family="monospace" font-size="9" fill="var(--diagram-accent)" text-anchor="middle">UserController</text>
+
+          <rect x="180" y="44" width="130" height="50" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="245" y="65" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">@RestController</text>
+          <text x="245" y="80" font-family="monospace" font-size="9" fill="var(--diagram-accent)" text-anchor="middle">OrderController</text>
+
+          <rect x="330" y="44" width="100" height="50" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2" stroke-dasharray="3,2"/>
+          <text x="380" y="74" font-family="system-ui, sans-serif" font-size="10" fill="var(--fg-muted)" text-anchor="middle">&hellip; more</text>
+
+          <!-- YAML file -->
+          <rect x="540" y="38" width="150" height="62" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-accent)" stroke-width="1.5"/>
+          <text x="615" y="60" font-family="system-ui, sans-serif" font-size="10" fill="var(--diagram-accent)" text-anchor="middle" font-weight="600">auto-tests.yml</text>
+          <text x="615" y="76" font-family="monospace" font-size="8.5" fill="var(--diagram-text)" text-anchor="middle">YAML Test Specs</text>
+          <text x="615" y="90" font-family="monospace" font-size="8" fill="var(--fg-muted)" text-anchor="middle">tests: [{...}, ...]</text>
+
+          <!-- Scanner -->
+          <rect x="30" y="150" width="160" height="60" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="110" y="174" font-family="system-ui, sans-serif" font-size="12" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">EndpointScanner</text>
+          <text x="110" y="192" font-family="monospace" font-size="8.5" fill="var(--fg-muted)" text-anchor="middle">ClassGraph annotation scan</text>
+          <line x1="110" y1="94" x2="110" y2="150" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#ah)"/>
+          <text x="118" y="128" font-family="system-ui, sans-serif" font-size="8" fill="var(--fg-muted)">scans</text>
+
+          <!-- Generator -->
+          <rect x="230" y="150" width="160" height="60" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="310" y="174" font-family="system-ui, sans-serif" font-size="12" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">YamlGenerator</text>
+          <text x="310" y="192" font-family="monospace" font-size="8.5" fill="var(--fg-muted)" text-anchor="middle">skeleton YAML output</text>
+          <line x1="190" y1="180" x2="230" y2="180" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#ah)"/>
+          <text x="202" y="174" font-family="system-ui, sans-serif" font-size="8" fill="var(--fg-muted)">endpoints</text>
+
+          <!-- Arrow from Generator to YAML -->
+          <polyline points="390,170 460,170 460,69 540,69" fill="none" stroke="var(--diagram-accent)" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ah-acc)"/>
+          <text x="440" y="162" font-family="system-ui, sans-serif" font-size="8" fill="var(--diagram-accent)">writes</text>
+
+          <!-- Parser -->
+          <rect x="530" y="150" width="160" height="60" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="610" y="174" font-family="system-ui, sans-serif" font-size="12" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">YamlParser</text>
+          <text x="610" y="192" font-family="monospace" font-size="8.5" fill="var(--fg-muted)" text-anchor="middle">simple + detailed formats</text>
+          <line x1="615" y1="100" x2="615" y2="150" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#ah)"/>
+          <text x="623" y="128" font-family="system-ui, sans-serif" font-size="8" fill="var(--fg-muted)">reads</text>
+
+          <!-- TestRunner (central) -->
+          <rect x="230" y="270" width="260" height="70" rx="6" fill="var(--diagram-accent)" fill-opacity="0.12" stroke="var(--diagram-accent)" stroke-width="1.5"/>
+          <text x="360" y="298" font-family="system-ui, sans-serif" font-size="14" fill="var(--diagram-accent)" text-anchor="middle" font-weight="700">ScanRestTestRunner</text>
+          <text x="360" y="318" font-family="monospace" font-size="9" fill="var(--diagram-text)" text-anchor="middle">toDynamicTests() &middot; runTests() &middot; onStartup()</text>
+
+          <!-- Arrows into TestRunner -->
+          <line x1="110" y1="210" x2="110" y2="290" stroke="var(--diagram-stroke)" stroke-width="1"/>
+          <line x1="110" y1="290" x2="230" y2="290" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#ah)"/>
+          <line x1="610" y1="210" x2="610" y2="300" stroke="var(--diagram-stroke)" stroke-width="1"/>
+          <line x1="610" y1="300" x2="490" y2="300" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#ah)"/>
+          <text x="155" y="284" font-family="system-ui, sans-serif" font-size="8" fill="var(--fg-muted)">endpoint info</text>
+          <text x="510" y="294" font-family="system-ui, sans-serif" font-size="8" fill="var(--fg-muted)">test cases</text>
+
+          <!-- Engine row -->
+          <rect x="30" y="400" width="145" height="55" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-accent2)" stroke-width="1.2"/>
+          <text x="103" y="422" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">HttpExecutor</text>
+          <text x="103" y="440" font-family="monospace" font-size="8" fill="var(--diagram-accent2)" text-anchor="middle">LIVE / MOCKMVC</text>
+
+          <rect x="195" y="400" width="145" height="55" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-accent2)" stroke-width="1.2"/>
+          <text x="268" y="422" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">AssertionEngine</text>
+          <text x="268" y="440" font-family="monospace" font-size="8" fill="var(--diagram-accent2)" text-anchor="middle">status &middot; body &middot; schema</text>
+
+          <rect x="360" y="400" width="145" height="55" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-accent2)" stroke-width="1.2"/>
+          <text x="433" y="422" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">VariableResolver</text>
+          <text x="433" y="440" font-family="monospace" font-size="8" fill="var(--diagram-accent2)" text-anchor="middle">{{var}} interpolation</text>
+
+          <rect x="525" y="400" width="145" height="55" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="598" y="422" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">TestReporter</text>
+          <text x="598" y="440" font-family="monospace" font-size="8" fill="var(--fg-muted)" text-anchor="middle">ANSI + file output</text>
+
+          <!-- Arrows from TestRunner to engine row -->
+          <line x1="300" y1="340" x2="103" y2="400" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#ah)"/>
+          <line x1="340" y1="340" x2="268" y2="400" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#ah)"/>
+          <line x1="380" y1="340" x2="433" y2="400" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#ah)"/>
+          <line x1="420" y1="340" x2="598" y2="400" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#ah)"/>
+
+          <!-- Labels on arrows -->
+          <text x="185" y="374" font-family="system-ui, sans-serif" font-size="8" fill="var(--fg-muted)">execute</text>
+          <text x="290" y="374" font-family="system-ui, sans-serif" font-size="8" fill="var(--fg-muted)">assert</text>
+          <text x="395" y="374" font-family="system-ui, sans-serif" font-size="8" fill="var(--fg-muted)">resolve</text>
+          <text x="510" y="374" font-family="system-ui, sans-serif" font-size="8" fill="var(--fg-muted)">report</text>
+
+          <!-- JUnit output -->
+          <rect x="30" y="480" width="200" height="30" rx="4" fill="var(--diagram-accent)" fill-opacity="0.08" stroke="var(--diagram-accent)" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="130" y="500" font-family="system-ui, sans-serif" font-size="10" fill="var(--diagram-accent)" text-anchor="middle" font-weight="600">JUnit 5 DynamicTest results</text>
+        </svg>
+        <figcaption>Fig 1 &mdash; ScanRest system architecture. Controllers are scanned for endpoints, YAML specs are parsed, and the TestRunner orchestrates execution through the Engine subsystem. Each YAML entry becomes a JUnit 5 DynamicTest.</figcaption>
+      </figure>
+    </section>
+
+    <!-- =========== CH 4: DESIGN PATTERNS =========== -->
+    <section class="chapter" id="patterns">
+      <div class="chapter-num">Chapter 4</div>
+      <h3>Design Patterns</h3>
+
+      <h4>Strategy Pattern &mdash; Execution Modes</h4>
+      <p>The <code>HttpExecutor</code> interface defines a single contract: execute a request and return a response. Three implementations &mdash; <code>LiveHttpExecutor</code>, <code>MockMvcExecutor</code>, and <code>EmbeddedSpringExecutor</code> &mdash; encapsulate entirely different execution strategies behind the same interface. The TestRunner selects the strategy based on configuration, and the rest of the pipeline is unaware of which one is running.</p>
+
+      <figure>
+        <svg viewBox="0 0 600 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Strategy pattern: HttpExecutor interface implemented by LiveHttpExecutor, MockMvcExecutor, and EmbeddedSpringExecutor">
+          <!-- Interface -->
+          <rect x="190" y="20" width="220" height="65" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-accent)" stroke-width="1.5"/>
+          <text x="300" y="40" font-family="monospace" font-size="9" fill="var(--diagram-accent)" text-anchor="middle">&laquo;interface&raquo;</text>
+          <text x="300" y="58" font-family="system-ui, sans-serif" font-size="13" fill="var(--diagram-text)" text-anchor="middle" font-weight="700">HttpExecutor</text>
+          <line x1="200" y1="65" x2="400" y2="65" stroke="var(--diagram-accent)" stroke-width="0.5"/>
+          <text x="300" y="78" font-family="monospace" font-size="9" fill="var(--diagram-text)" text-anchor="middle">execute(request): Response</text>
+
+          <!-- Implementations -->
+          <rect x="20" y="160" width="170" height="55" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="105" y="183" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">LiveHttpExecutor</text>
+          <text x="105" y="200" font-family="monospace" font-size="8" fill="var(--diagram-accent2)" text-anchor="middle">RestAssured HTTP</text>
+
+          <rect x="215" y="160" width="170" height="55" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="300" y="183" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">MockMvcExecutor</text>
+          <text x="300" y="200" font-family="monospace" font-size="8" fill="var(--diagram-accent2)" text-anchor="middle">Spring MockMvc</text>
+
+          <rect x="410" y="160" width="170" height="55" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="495" y="183" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">EmbeddedSpring</text>
+          <text x="495" y="200" font-family="monospace" font-size="8" fill="var(--diagram-accent2)" text-anchor="middle">boots own context</text>
+
+          <!-- Dashed implement arrows -->
+          <line x1="105" y1="160" x2="260" y2="85" stroke="var(--diagram-stroke)" stroke-width="1" stroke-dasharray="4,3"/>
+          <line x1="300" y1="160" x2="300" y2="85" stroke="var(--diagram-stroke)" stroke-width="1" stroke-dasharray="4,3"/>
+          <line x1="495" y1="160" x2="340" y2="85" stroke="var(--diagram-stroke)" stroke-width="1" stroke-dasharray="4,3"/>
+
+          <!-- Triangle markers for implements -->
+          <polygon points="260,85 253,93 267,93" fill="none" stroke="var(--diagram-stroke)" stroke-width="1"/>
+          <polygon points="300,85 293,93 307,93" fill="none" stroke="var(--diagram-stroke)" stroke-width="1"/>
+          <polygon points="340,85 333,93 347,93" fill="none" stroke="var(--diagram-stroke)" stroke-width="1"/>
+
+          <!-- Labels -->
+          <text x="105" y="240" font-family="system-ui, sans-serif" font-size="9" fill="var(--fg-muted)" text-anchor="middle">Real HTTP over the wire</text>
+          <text x="300" y="240" font-family="system-ui, sans-serif" font-size="9" fill="var(--fg-muted)" text-anchor="middle">In-process, supports @MockBean</text>
+          <text x="495" y="240" font-family="system-ui, sans-serif" font-size="9" fill="var(--fg-muted)" text-anchor="middle">Standalone, CLI-oriented</text>
+        </svg>
+        <figcaption>Fig 2 &mdash; Strategy pattern applied to execution modes. The TestRunner delegates to whichever HttpExecutor implementation matches the configured mode.</figcaption>
+      </figure>
+
+      <h4>Template Method &mdash; Test Lifecycle</h4>
+      <p>The <code>ScanRestTestRunner</code> defines the test lifecycle as a fixed sequence: resolve variables, execute request, run assertions, save response values, and report results. Each step delegates to a specialized component. Subclasses or configuration do not alter the sequence, only the strategy behind each step.</p>
+
+      <h4>Builder Pattern &mdash; YAML Parsing</h4>
+      <p>The <code>YamlParser</code> reads both simple and detailed formats into a unified <code>TestCase</code> model. Simple entries are expanded into the same internal representation as detailed ones &mdash; the engine never sees format differences. This normalizes the two YAML dialects into a single object graph.</p>
+
+      <h4>Observer &mdash; Spring Event Integration</h4>
+      <p>When <code>scanrest.run-on-startup=true</code>, the runner listens for Spring's <code>ApplicationReadyEvent</code> and executes all tests automatically. This decouples test execution from the test framework &mdash; tests can run as part of application startup without JUnit involvement.</p>
+    </section>
+
+    <!-- =========== CH 5: EXECUTION FLOW =========== -->
+    <section class="chapter" id="execution-flow">
+      <div class="chapter-num">Chapter 5</div>
+      <h3>Execution Flow</h3>
+      <p>When <code>toDynamicTests()</code> is called, ScanRest walks through a well-defined pipeline. This flowchart traces a single test case from YAML to JUnit result.</p>
+
+      <figure>
+        <svg viewBox="0 0 680 700" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Flowchart: test execution pipeline from YAML parsing through variable resolution, dependency check, HTTP execution, assertions, value saving, and reporting">
+          <defs>
+            <marker id="fa" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="var(--diagram-stroke)"/>
+            </marker>
+            <marker id="fa-g" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="var(--green)"/>
+            </marker>
+            <marker id="fa-r" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="var(--red)"/>
+            </marker>
+          </defs>
+
+          <!-- Start -->
+          <ellipse cx="300" cy="30" rx="70" ry="20" fill="var(--diagram-accent)" fill-opacity="0.15" stroke="var(--diagram-accent)" stroke-width="1.2"/>
+          <text x="300" y="34" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-accent)" text-anchor="middle" font-weight="600">YAML Loaded</text>
+
+          <line x1="300" y1="50" x2="300" y2="80" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#fa)"/>
+
+          <!-- Parse -->
+          <rect x="200" y="80" width="200" height="45" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="300" y="100" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">Parse YAML &#8594; TestCase[]</text>
+          <text x="300" y="115" font-family="monospace" font-size="8.5" fill="var(--fg-muted)" text-anchor="middle">simple + detailed normalization</text>
+
+          <line x1="300" y1="125" x2="300" y2="155" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#fa)"/>
+
+          <!-- For each test -->
+          <rect x="195" y="155" width="210" height="35" rx="4" fill="var(--diagram-accent2)" fill-opacity="0.1" stroke="var(--diagram-accent2)" stroke-width="1.2"/>
+          <text x="300" y="177" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-accent2)" text-anchor="middle" font-weight="600">For each TestCase</text>
+
+          <line x1="300" y1="190" x2="300" y2="220" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#fa)"/>
+
+          <!-- Resolve variables -->
+          <rect x="200" y="220" width="200" height="40" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="300" y="244" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">Resolve {{variables}}</text>
+
+          <line x1="300" y1="260" x2="300" y2="290" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#fa)"/>
+
+          <!-- Dependency check diamond -->
+          <polygon points="300,290 380,325 300,360 220,325" fill="var(--diagram-fill)" stroke="var(--diagram-accent)" stroke-width="1.2"/>
+          <text x="300" y="322" font-family="system-ui, sans-serif" font-size="10" fill="var(--diagram-text)" text-anchor="middle">dependsOn</text>
+          <text x="300" y="336" font-family="system-ui, sans-serif" font-size="10" fill="var(--diagram-text)" text-anchor="middle">passed?</text>
+
+          <!-- No path &mdash; skip -->
+          <line x1="220" y1="325" x2="100" y2="325" stroke="var(--red)" stroke-width="1" marker-end="url(#fa-r)"/>
+          <text x="165" y="318" font-family="system-ui, sans-serif" font-size="9" fill="var(--red)">no</text>
+          <rect x="20" y="308" width="80" height="34" rx="4" fill="var(--red)" fill-opacity="0.1" stroke="var(--red)" stroke-width="1"/>
+          <text x="60" y="330" font-family="system-ui, sans-serif" font-size="10" fill="var(--red)" text-anchor="middle" font-weight="600">SKIP</text>
+
+          <!-- Yes path &mdash; continue -->
+          <line x1="300" y1="360" x2="300" y2="395" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#fa)"/>
+          <text x="310" y="380" font-family="system-ui, sans-serif" font-size="9" fill="var(--green)">yes</text>
+
+          <!-- Execute request -->
+          <rect x="200" y="395" width="200" height="40" rx="4" fill="var(--diagram-accent2)" fill-opacity="0.1" stroke="var(--diagram-accent2)" stroke-width="1.2"/>
+          <text x="300" y="419" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">Execute HTTP Request</text>
+
+          <line x1="300" y1="435" x2="300" y2="465" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#fa)"/>
+
+          <!-- Assertions -->
+          <rect x="185" y="465" width="230" height="50" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="300" y="486" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">Run Assertions</text>
+          <text x="300" y="503" font-family="monospace" font-size="8.5" fill="var(--fg-muted)" text-anchor="middle">status &middot; JSONPath &middot; headers &middot; schema</text>
+
+          <line x1="300" y1="515" x2="300" y2="545" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#fa)"/>
+
+          <!-- Save values -->
+          <rect x="210" y="545" width="180" height="40" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="300" y="569" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">Save response values</text>
+
+          <line x1="300" y1="585" x2="300" y2="615" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#fa)"/>
+
+          <!-- Report -->
+          <rect x="220" y="615" width="160" height="40" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="300" y="639" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">Report PASS / FAIL</text>
+
+          <line x1="300" y1="655" x2="300" y2="680" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#fa)"/>
+
+          <!-- End -->
+          <ellipse cx="300" cy="690" rx="55" ry="15" fill="var(--diagram-accent)" fill-opacity="0.15" stroke="var(--diagram-accent)" stroke-width="1"/>
+          <text x="300" y="694" font-family="system-ui, sans-serif" font-size="10" fill="var(--diagram-accent)" text-anchor="middle" font-weight="600">Next test</text>
+
+          <!-- Side annotations -->
+          <text x="430" y="240" font-family="monospace" font-size="8" fill="var(--fg-muted)">globals, profile vars,</text>
+          <text x="430" y="252" font-family="monospace" font-size="8" fill="var(--fg-muted)">saved response values</text>
+          <line x1="400" y1="240" x2="425" y2="240" stroke="var(--fg-muted)" stroke-width="0.5" stroke-dasharray="3,2"/>
+
+          <text x="430" y="415" font-family="monospace" font-size="8" fill="var(--fg-muted)">LiveHttp / MockMvc /</text>
+          <text x="430" y="427" font-family="monospace" font-size="8" fill="var(--fg-muted)">EmbeddedSpring</text>
+          <line x1="400" y1="415" x2="425" y2="415" stroke="var(--fg-muted)" stroke-width="0.5" stroke-dasharray="3,2"/>
+
+          <text x="430" y="565" font-family="monospace" font-size="8" fill="var(--fg-muted)">JSONPath &#8594; variable store</text>
+          <line x1="390" y1="565" x2="425" y2="565" stroke="var(--fg-muted)" stroke-width="0.5" stroke-dasharray="3,2"/>
+        </svg>
+        <figcaption>Fig 3 &mdash; Execution flow for a single test case. Variables are resolved before execution, dependency checks can skip tests, and saved values feed into subsequent tests.</figcaption>
+      </figure>
+    </section>
+
+    <!-- =========== CH 6: YAML SPEC =========== -->
+    <section class="chapter" id="yaml-spec">
+      <div class="chapter-num">Chapter 6</div>
+      <h3>YAML Test Specification</h3>
+      <p>ScanRest supports two YAML formats in the same file. Use them interchangeably depending on how much control you need.</p>
+
+      <h4>Simple Format</h4>
+      <p>One-line test definitions for straightforward status code checks:</p>
+<pre><code><span class="kw">tests:</span>
+  <span class="cm"># Just check the status code</span>
+  - <span class="str">GET /api/users</span>: <span class="num">200</span>
+  - <span class="str">DELETE /api/users/1</span>: <span class="num">204</span>
+
+  <span class="cm"># Inline body assertions</span>
+  - <span class="str">GET /api/users/1</span>: { <span class="kw">expect:</span> <span class="num">200</span>, <span class="kw">body:</span> { <span class="str">$.name</span>: <span class="str">NOT_NULL</span> } }</code></pre>
+
+      <h4>Detailed Format</h4>
+      <p>Full test specification with all available fields:</p>
+<pre><code>- <span class="kw">name:</span> <span class="str">"Create user"</span>
+  <span class="kw">method:</span> POST
+  <span class="kw">path:</span> /api/users
+  <span class="kw">request:</span>
+    <span class="kw">headers:</span>
+      <span class="str">Content-Type</span>: <span class="str">application/json</span>
+      <span class="str">Authorization</span>: <span class="str">"Bearer {{token}}"</span>
+    <span class="kw">queryParams:</span>
+      <span class="str">notify</span>: <span class="str">true</span>
+    <span class="kw">body:</span>
+      <span class="str">name</span>: <span class="str">"Alice"</span>
+      <span class="str">email</span>: <span class="str">"alice@test.com"</span>
+  <span class="kw">expect:</span>
+    <span class="kw">status:</span> <span class="num">201</span>
+    <span class="kw">body:</span>
+      <span class="str">$.id</span>: <span class="str">NOT_NULL</span>
+      <span class="str">$.name</span>: <span class="str">"Alice"</span>
+    <span class="kw">headers:</span>
+      <span class="str">Location</span>: <span class="str">STARTS_WITH("/api/users/")</span>
+    <span class="kw">schema:</span> <span class="str">schemas/user.json</span>
+    <span class="kw">save:</span>
+      <span class="str">userId</span>: <span class="str">$.id</span>
+  <span class="kw">auth:</span> <span class="str">NONE</span>          <span class="cm"># omit Authorization header</span>
+  <span class="kw">dependsOn:</span> <span class="str">"Setup DB"</span>  <span class="cm"># skip if dependency failed</span></code></pre>
+
+      <h4>Config Block</h4>
+      <p>Global settings at the top of the YAML file:</p>
+<pre><code><span class="kw">config:</span>
+  <span class="kw">baseUrl:</span> <span class="str">http://localhost:8080</span>
+  <span class="kw">activeProfile:</span> <span class="str">dev</span>
+  <span class="kw">variables:</span>
+    <span class="str">token</span>: <span class="str">"eyJhbGci..."</span>
+  <span class="kw">profiles:</span>
+    <span class="kw">dev:</span>
+      <span class="kw">baseUrl:</span> <span class="str">http://localhost:8080</span>
+      <span class="kw">token:</span> <span class="str">"dev-token"</span>
+    <span class="kw">staging:</span>
+      <span class="kw">baseUrl:</span> <span class="str">https://staging.api.com</span>
+      <span class="kw">token:</span> <span class="str">"staging-token"</span></code></pre>
+    </section>
+
+    <!-- =========== CH 7: EXECUTION MODES =========== -->
+    <section class="chapter" id="execution-modes">
+      <div class="chapter-num">Chapter 7</div>
+      <h3>Execution Modes</h3>
+
+      <figure>
+        <svg viewBox="0 0 680 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three execution modes compared: LIVE sends HTTP over the wire to a running server, MOCKMVC calls controllers in-process through DispatcherServlet, EMBEDDED boots its own Spring context">
+          <defs>
+            <marker id="ma" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+              <polygon points="0 0, 7 2.5, 0 5" fill="var(--diagram-stroke)"/>
+            </marker>
+          </defs>
+
+          <!-- LIVE -->
+          <rect x="10" y="10" width="210" height="240" rx="5" fill="var(--diagram-fill)" stroke="var(--diagram-accent)" stroke-width="1.2"/>
+          <text x="115" y="34" font-family="system-ui, sans-serif" font-size="12" fill="var(--diagram-accent)" text-anchor="middle" font-weight="700">LIVE</text>
+
+          <rect x="30" y="52" width="75" height="35" rx="3" fill="var(--diagram-accent)" fill-opacity="0.1" stroke="var(--diagram-accent)" stroke-width="0.8"/>
+          <text x="68" y="74" font-family="monospace" font-size="9" fill="var(--diagram-text)" text-anchor="middle">ScanRest</text>
+
+          <rect x="125" y="52" width="75" height="35" rx="3" fill="var(--diagram-accent2)" fill-opacity="0.1" stroke="var(--diagram-accent2)" stroke-width="0.8"/>
+          <text x="163" y="74" font-family="monospace" font-size="9" fill="var(--diagram-text)" text-anchor="middle">Server</text>
+
+          <line x1="105" y1="70" x2="125" y2="70" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#ma)"/>
+          <text x="115" y="64" font-family="monospace" font-size="7" fill="var(--fg-muted)" text-anchor="middle">HTTP</text>
+
+          <text x="115" y="115" font-family="system-ui, sans-serif" font-size="9" fill="var(--fg-muted)" text-anchor="middle">Real HTTP via RestAssured</text>
+          <text x="115" y="130" font-family="system-ui, sans-serif" font-size="9" fill="var(--fg-muted)" text-anchor="middle">Full network stack</text>
+          <text x="115" y="150" font-family="system-ui, sans-serif" font-size="8.5" fill="var(--green)" text-anchor="middle">Best for: integration testing</text>
+
+          <text x="115" y="180" font-family="monospace" font-size="8" fill="var(--diagram-text)" text-anchor="middle">@SpringBootTest(RANDOM_PORT)</text>
+
+          <!-- MOCKMVC -->
+          <rect x="235" y="10" width="210" height="240" rx="5" fill="var(--diagram-fill)" stroke="var(--diagram-accent2)" stroke-width="1.2"/>
+          <text x="340" y="34" font-family="system-ui, sans-serif" font-size="12" fill="var(--diagram-accent2)" text-anchor="middle" font-weight="700">MOCKMVC</text>
+
+          <rect x="260" y="52" width="160" height="35" rx="3" fill="var(--diagram-accent2)" fill-opacity="0.1" stroke="var(--diagram-accent2)" stroke-width="0.8"/>
+          <text x="340" y="67" font-family="monospace" font-size="9" fill="var(--diagram-text)" text-anchor="middle">ScanRest &#8594; MockMvc</text>
+          <text x="340" y="80" font-family="monospace" font-size="7.5" fill="var(--fg-muted)" text-anchor="middle">DispatcherServlet (in-process)</text>
+
+          <text x="340" y="115" font-family="system-ui, sans-serif" font-size="9" fill="var(--fg-muted)" text-anchor="middle">No HTTP, no server port</text>
+          <text x="340" y="130" font-family="system-ui, sans-serif" font-size="9" fill="var(--fg-muted)" text-anchor="middle">Supports @MockBean</text>
+          <text x="340" y="150" font-family="system-ui, sans-serif" font-size="8.5" fill="var(--green)" text-anchor="middle">Best for: unit/slice testing</text>
+
+          <text x="340" y="180" font-family="monospace" font-size="8" fill="var(--diagram-text)" text-anchor="middle">@WebMvcTest or @SpringBootTest</text>
+
+          <!-- EMBEDDED -->
+          <rect x="460" y="10" width="210" height="240" rx="5" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="565" y="34" font-family="system-ui, sans-serif" font-size="12" fill="var(--diagram-text)" text-anchor="middle" font-weight="700">EMBEDDED</text>
+
+          <rect x="485" y="52" width="160" height="35" rx="3" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="0.8"/>
+          <text x="565" y="67" font-family="monospace" font-size="9" fill="var(--diagram-text)" text-anchor="middle">ScanRest boots Spring</text>
+          <text x="565" y="80" font-family="monospace" font-size="7.5" fill="var(--fg-muted)" text-anchor="middle">own ApplicationContext</text>
+
+          <text x="565" y="115" font-family="system-ui, sans-serif" font-size="9" fill="var(--fg-muted)" text-anchor="middle">Standalone execution</text>
+          <text x="565" y="130" font-family="system-ui, sans-serif" font-size="9" fill="var(--fg-muted)" text-anchor="middle">CLI-oriented</text>
+          <text x="565" y="150" font-family="system-ui, sans-serif" font-size="8.5" fill="var(--green)" text-anchor="middle">Best for: CI/CD pipelines</text>
+
+          <text x="565" y="180" font-family="monospace" font-size="8" fill="var(--diagram-text)" text-anchor="middle">java -jar scanrest.jar test</text>
+        </svg>
+        <figcaption>Fig 4 &mdash; Three execution modes. LIVE tests the full stack over HTTP, MOCKMVC tests controllers in-process with mocks, and EMBEDDED runs standalone from the CLI.</figcaption>
+      </figure>
+
+      <h4>Configuration</h4>
+<pre><code><span class="cm"># application.properties</span>
+<span class="kw">scanrest.mode</span>=<span class="str">LIVE</span>      <span class="cm"># or MOCKMVC, EMBEDDED</span>
+<span class="kw">scanrest.base-url</span>=<span class="str">http://localhost:8080</span></code></pre>
+    </section>
+
+    <!-- =========== CH 8: ASSERTIONS =========== -->
+    <section class="chapter" id="assertions">
+      <div class="chapter-num">Chapter 8</div>
+      <h3>Assertions & Matchers</h3>
+
+      <h4>Assertion Types</h4>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Type</th><th>YAML Key</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>Status code</td><td><code>expect.status</code></td><td>Exact HTTP status match (200, 404, etc.)</td></tr>
+            <tr><td>Body (JSONPath)</td><td><code>expect.body</code></td><td>JSONPath expressions matched against the response body</td></tr>
+            <tr><td>Headers</td><td><code>expect.headers</code></td><td>Case-insensitive header value checks</td></tr>
+            <tr><td>JSON Schema</td><td><code>expect.schema</code></td><td>Validates response against a JSON Schema v7 file</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Built-in Matchers</h4>
+      <p>Use these in place of literal values in body or header assertions:</p>
+      <div class="matcher-grid">
+        <div class="matcher-item">NOT_NULL<span>Value exists and is not null</span></div>
+        <div class="matcher-item">NULL<span>Value is null</span></div>
+        <div class="matcher-item">NOT_EMPTY<span>Non-empty string/array/object</span></div>
+        <div class="matcher-item">CONTAINS("x")<span>String contains substring</span></div>
+        <div class="matcher-item">STARTS_WITH("x")<span>String prefix check</span></div>
+        <div class="matcher-item">ENDS_WITH("x")<span>String suffix check</span></div>
+        <div class="matcher-item">MATCHES("regex")<span>Regex pattern match</span></div>
+        <div class="matcher-item">GT(n)<span>Greater than numeric</span></div>
+        <div class="matcher-item">LT(n)<span>Less than numeric</span></div>
+        <div class="matcher-item">GTE(n)<span>Greater than or equal</span></div>
+        <div class="matcher-item">LTE(n)<span>Less than or equal</span></div>
+        <div class="matcher-item">SIZE(n)<span>Array/collection size check</span></div>
+      </div>
+
+      <h4>Example with Matchers</h4>
+<pre><code><span class="kw">expect:</span>
+  <span class="kw">status:</span> <span class="num">200</span>
+  <span class="kw">body:</span>
+    <span class="str">$.id</span>:       <span class="str">NOT_NULL</span>
+    <span class="str">$.name</span>:     <span class="str">STARTS_WITH("Alice")</span>
+    <span class="str">$.email</span>:    <span class="str">MATCHES("^[\\w.]+@[\\w.]+$")</span>
+    <span class="str">$.age</span>:      <span class="str">GTE(18)</span>
+    <span class="str">$.tags</span>:     <span class="str">SIZE(3)</span>
+    <span class="str">$.bio</span>:      <span class="str">NOT_EMPTY</span>
+  <span class="kw">headers:</span>
+    <span class="str">Content-Type</span>: <span class="str">CONTAINS("json")</span></code></pre>
+    </section>
+
+    <!-- =========== CH 9: CHAINING =========== -->
+    <section class="chapter" id="chaining">
+      <div class="chapter-num">Chapter 9</div>
+      <h3>Test Chaining</h3>
+      <p>Tests can depend on each other and pass data forward. The <code>save</code> field extracts values from a response via JSONPath and stores them as variables. The <code>dependsOn</code> field references a previous test by name &mdash; if the dependency failed, the dependent test is skipped.</p>
+
+      <figure>
+        <svg viewBox="0 0 650 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Test chaining: Create User saves userId, then Get User and Update User both depend on it and use the saved userId variable">
+          <defs>
+            <marker id="ca" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+              <polygon points="0 0, 7 2.5, 0 5" fill="var(--diagram-accent)"/>
+            </marker>
+            <marker id="cd" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+              <polygon points="0 0, 7 2.5, 0 5" fill="var(--diagram-stroke)"/>
+            </marker>
+          </defs>
+
+          <!-- Create -->
+          <rect x="20" y="50" width="170" height="65" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-accent)" stroke-width="1.5"/>
+          <text x="105" y="74" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">Create User</text>
+          <text x="105" y="92" font-family="monospace" font-size="8.5" fill="var(--diagram-accent)" text-anchor="middle">POST /api/users &#8594; 201</text>
+          <text x="105" y="106" font-family="monospace" font-size="8" fill="var(--green)" text-anchor="middle">save: userId &larr; $.id</text>
+
+          <!-- Variable store -->
+          <rect x="250" y="15" width="130" height="30" rx="3" fill="var(--diagram-accent)" fill-opacity="0.1" stroke="var(--diagram-accent)" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="315" y="35" font-family="monospace" font-size="9" fill="var(--diagram-accent)" text-anchor="middle">{{userId}} = 42</text>
+
+          <line x1="190" y1="70" x2="250" y2="35" stroke="var(--diagram-accent)" stroke-width="1" marker-end="url(#ca)"/>
+          <text x="210" y="45" font-family="system-ui, sans-serif" font-size="8" fill="var(--diagram-accent)">saves</text>
+
+          <!-- Get User -->
+          <rect x="250" y="80" width="170" height="65" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="335" y="104" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">Get User</text>
+          <text x="335" y="120" font-family="monospace" font-size="8.5" fill="var(--diagram-accent2)" text-anchor="middle">GET /api/users/{{userId}}</text>
+          <text x="335" y="135" font-family="monospace" font-size="8" fill="var(--fg-muted)" text-anchor="middle">dependsOn: "Create User"</text>
+
+          <line x1="190" y1="90" x2="250" y2="100" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#cd)"/>
+
+          <!-- Update User -->
+          <rect x="460" y="80" width="170" height="65" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="545" y="104" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-text)" text-anchor="middle" font-weight="600">Update User</text>
+          <text x="545" y="120" font-family="monospace" font-size="8.5" fill="var(--diagram-accent2)" text-anchor="middle">PUT /api/users/{{userId}}</text>
+          <text x="545" y="135" font-family="monospace" font-size="8" fill="var(--fg-muted)" text-anchor="middle">dependsOn: "Get User"</text>
+
+          <line x1="420" y1="112" x2="460" y2="112" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#cd)"/>
+
+          <!-- Variable reads -->
+          <line x1="340" y1="45" x2="340" y2="80" stroke="var(--diagram-accent)" stroke-width="0.8" stroke-dasharray="3,2" marker-end="url(#ca)"/>
+          <line x1="370" y1="45" x2="545" y2="80" stroke="var(--diagram-accent)" stroke-width="0.8" stroke-dasharray="3,2" marker-end="url(#ca)"/>
+
+          <!-- Legend -->
+          <text x="250" y="180" font-family="system-ui, sans-serif" font-size="8" fill="var(--fg-muted)">--- dependsOn (execution order)</text>
+          <text x="250" y="195" font-family="system-ui, sans-serif" font-size="8" fill="var(--diagram-accent)">- - - variable reference</text>
+        </svg>
+        <figcaption>Fig 5 &mdash; Test chaining. Create User saves the new ID; subsequent tests reference it via <code>{{userId}}</code> and declare their dependency for ordering.</figcaption>
+      </figure>
+
+<pre><code><span class="kw">tests:</span>
+  - <span class="kw">name:</span> <span class="str">"Create User"</span>
+    <span class="kw">method:</span> POST
+    <span class="kw">path:</span> /api/users
+    <span class="kw">request:</span>
+      <span class="kw">body:</span> { <span class="str">name</span>: <span class="str">"Alice"</span>, <span class="str">email</span>: <span class="str">"alice@test.com"</span> }
+    <span class="kw">expect:</span>
+      <span class="kw">status:</span> <span class="num">201</span>
+      <span class="kw">save:</span>
+        <span class="str">userId</span>: <span class="str">$.id</span>
+
+  - <span class="kw">name:</span> <span class="str">"Get User"</span>
+    <span class="kw">method:</span> GET
+    <span class="kw">path:</span> <span class="str">/api/users/{{userId}}</span>
+    <span class="kw">dependsOn:</span> <span class="str">"Create User"</span>
+    <span class="kw">expect:</span>
+      <span class="kw">status:</span> <span class="num">200</span>
+      <span class="kw">body:</span>
+        <span class="str">$.name</span>: <span class="str">"Alice"</span></code></pre>
+    </section>
+
+    <!-- =========== CH 10: PROFILES =========== -->
+    <section class="chapter" id="profiles">
+      <div class="chapter-num">Chapter 10</div>
+      <h3>Profiles & Variables</h3>
+      <p>Variables use the <code>{{name}}</code> syntax and are resolved from three sources in priority order: saved response values (highest), profile-specific variables, and global variables (lowest).</p>
+
+      <h4>Defining Profiles</h4>
+<pre><code><span class="kw">config:</span>
+  <span class="kw">activeProfile:</span> <span class="str">dev</span>
+  <span class="kw">variables:</span>
+    <span class="str">defaultPageSize</span>: <span class="num">20</span>
+  <span class="kw">profiles:</span>
+    <span class="kw">dev:</span>
+      <span class="kw">baseUrl:</span> <span class="str">http://localhost:8080</span>
+      <span class="kw">token:</span> <span class="str">"dev-jwt-token"</span>
+    <span class="kw">staging:</span>
+      <span class="kw">baseUrl:</span> <span class="str">https://staging.api.example.com</span>
+      <span class="kw">token:</span> <span class="str">"staging-jwt-token"</span>
+    <span class="kw">prod:</span>
+      <span class="kw">baseUrl:</span> <span class="str">https://api.example.com</span>
+      <span class="kw">token:</span> <span class="str">"prod-read-only-token"</span></code></pre>
+
+      <h4>Selecting a Profile</h4>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Example</th><th>Priority</th></tr></thead>
+          <tbody>
+            <tr><td>CLI flag</td><td><code>--profile staging</code></td><td>Highest</td></tr>
+            <tr><td>Spring property</td><td><code>scanrest.profile=staging</code></td><td>Medium</td></tr>
+            <tr><td>YAML config</td><td><code>activeProfile: staging</code></td><td>Lowest</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- =========== CH 11: PARAMETERIZED =========== -->
+    <section class="chapter" id="parameterized">
+      <div class="chapter-num">Chapter 11</div>
+      <h3>Parameterized Tests</h3>
+      <p>A single test definition can include a <code>parameterized</code> list. Each entry creates a separate test execution with its own variables and expected outcomes &mdash; useful for testing the same endpoint with many different inputs without duplicating the test definition.</p>
+
+      <h4>How It Works</h4>
+      <p>When ScanRest encounters a test with a <code>parameterized</code> field, it expands it into multiple JUnit 5 <code>DynamicTest</code> instances. Each entry in the list becomes its own named test:</p>
+
+<pre><code><span class="cm"># In the YAML, you write ONE test definition:</span>
+- <span class="kw">name:</span> <span class="str">"Test multiple user lookups"</span>
+  <span class="kw">path:</span> <span class="str">/api/users/{{id}}</span>
+  <span class="kw">method:</span> GET
+  <span class="kw">parameterized:</span>
+    - { <span class="str">id</span>: <span class="str">"1"</span>,   <span class="kw">expect:</span> <span class="num">200</span> }
+    - { <span class="str">id</span>: <span class="str">"2"</span>,   <span class="kw">expect:</span> <span class="num">200</span> }
+    - { <span class="str">id</span>: <span class="str">"999"</span>, <span class="kw">expect:</span> <span class="num">404</span> }
+    - { <span class="str">id</span>: <span class="str">"abc"</span>, <span class="kw">expect:</span> <span class="num">400</span> }</code></pre>
+
+      <p>ScanRest generates <strong>four</strong> individual JUnit tests from this single definition:</p>
+
+<pre><code><span class="cm"># JUnit test runner output:</span>
+<span class="str">Test multiple user lookups [1] {id=1, expect=200}</span>     <span class="cm">&#x2713; PASS</span>
+<span class="str">Test multiple user lookups [2] {id=2, expect=200}</span>     <span class="cm">&#x2713; PASS</span>
+<span class="str">Test multiple user lookups [3] {id=999, expect=404}</span>   <span class="cm">&#x2713; PASS</span>
+<span class="str">Test multiple user lookups [4] {id=abc, expect=400}</span>   <span class="cm">&#x2713; PASS</span></code></pre>
+
+      <h4>Anatomy of a Parameterized Entry</h4>
+      <p>Each entry in the <code>parameterized</code> list is a map with two kinds of keys:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Key Type</th><th>Purpose</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td>Variable keys</td><td>Injected into <code>{{variable}}</code> placeholders in path, body, headers, and query params</td><td><code>id: "1"</code>, <code>email: "alice@test.com"</code></td></tr>
+            <tr><td><code>expect</code></td><td>Overrides the test&rsquo;s default <code>expect.status</code> for this specific data set</td><td><code>expect: 200</code> or <code>expect: { status: 404 }</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Example 1: Path Variable Testing</h4>
+      <p>Test the same endpoint with different IDs and verify each returns the correct status:</p>
+
+<pre><code>- <span class="kw">name:</span> <span class="str">"User lookup by ID"</span>
+  <span class="kw">path:</span> <span class="str">/api/users/{{id}}</span>
+  <span class="kw">method:</span> GET
+  <span class="kw">parameterized:</span>
+    - { <span class="str">id</span>: <span class="str">"1"</span>,     <span class="kw">expect:</span> <span class="num">200</span> }   <span class="cm"># existing user</span>
+    - { <span class="str">id</span>: <span class="str">"2"</span>,     <span class="kw">expect:</span> <span class="num">200</span> }   <span class="cm"># existing user</span>
+    - { <span class="str">id</span>: <span class="str">"999"</span>,   <span class="kw">expect:</span> <span class="num">404</span> }   <span class="cm"># does not exist</span>
+    - { <span class="str">id</span>: <span class="str">"abc"</span>,   <span class="kw">expect:</span> <span class="num">400</span> }   <span class="cm"># invalid format</span>
+    - { <span class="str">id</span>: <span class="str">"-1"</span>,    <span class="kw">expect:</span> <span class="num">400</span> }   <span class="cm"># negative ID</span></code></pre>
+
+      <h4>Example 2: Request Body Validation</h4>
+      <p>Test input validation by varying the request body fields across multiple data sets:</p>
+
+<pre><code>- <span class="kw">name:</span> <span class="str">"Create user validation"</span>
+  <span class="kw">method:</span> POST
+  <span class="kw">path:</span> /api/users
+  <span class="kw">request:</span>
+    <span class="kw">body:</span>
+      <span class="str">name</span>: <span class="str">"{{name}}"</span>
+      <span class="str">email</span>: <span class="str">"{{email}}"</span>
+      <span class="str">age</span>: <span class="str">"{{age}}"</span>
+  <span class="kw">parameterized:</span>
+    <span class="cm"># Valid cases</span>
+    - { <span class="str">name</span>: <span class="str">"Alice"</span>,  <span class="str">email</span>: <span class="str">"alice@test.com"</span>,  <span class="str">age</span>: <span class="str">"25"</span>,  <span class="kw">expect:</span> <span class="num">201</span> }
+    - { <span class="str">name</span>: <span class="str">"Bob"</span>,    <span class="str">email</span>: <span class="str">"bob@test.com"</span>,    <span class="str">age</span>: <span class="str">"30"</span>,  <span class="kw">expect:</span> <span class="num">201</span> }
+
+    <span class="cm"># Invalid email</span>
+    - { <span class="str">name</span>: <span class="str">"Charlie"</span>, <span class="str">email</span>: <span class="str">"not-an-email"</span>,  <span class="str">age</span>: <span class="str">"22"</span>,  <span class="kw">expect:</span> <span class="num">400</span> }
+    - { <span class="str">name</span>: <span class="str">"Diana"</span>,   <span class="str">email</span>: <span class="str">""</span>,              <span class="str">age</span>: <span class="str">"28"</span>,  <span class="kw">expect:</span> <span class="num">400</span> }
+
+    <span class="cm"># Missing name</span>
+    - { <span class="str">name</span>: <span class="str">""</span>,        <span class="str">email</span>: <span class="str">"valid@test.com"</span>, <span class="str">age</span>: <span class="str">"20"</span>,  <span class="kw">expect:</span> <span class="num">400</span> }
+
+    <span class="cm"># Invalid age</span>
+    - { <span class="str">name</span>: <span class="str">"Eve"</span>,     <span class="str">email</span>: <span class="str">"eve@test.com"</span>,   <span class="str">age</span>: <span class="str">"-5"</span>,  <span class="kw">expect:</span> <span class="num">400</span> }
+    - { <span class="str">name</span>: <span class="str">"Frank"</span>,   <span class="str">email</span>: <span class="str">"frank@test.com"</span>, <span class="str">age</span>: <span class="str">"200"</span>, <span class="kw">expect:</span> <span class="num">400</span> }</code></pre>
+
+      <h4>Example 3: Query Parameter Variation</h4>
+      <p>Test pagination and filtering with different query parameter combinations:</p>
+
+<pre><code>- <span class="kw">name:</span> <span class="str">"Search users with filters"</span>
+  <span class="kw">method:</span> GET
+  <span class="kw">path:</span> /api/users
+  <span class="kw">request:</span>
+    <span class="kw">queryParams:</span>
+      <span class="str">page</span>: <span class="str">"{{page}}"</span>
+      <span class="str">size</span>: <span class="str">"{{size}}"</span>
+      <span class="str">sort</span>: <span class="str">"{{sort}}"</span>
+  <span class="kw">parameterized:</span>
+    - { <span class="str">page</span>: <span class="str">"0"</span>, <span class="str">size</span>: <span class="str">"10"</span>,  <span class="str">sort</span>: <span class="str">"name,asc"</span>,  <span class="kw">expect:</span> <span class="num">200</span> }
+    - { <span class="str">page</span>: <span class="str">"0"</span>, <span class="str">size</span>: <span class="str">"100"</span>, <span class="str">sort</span>: <span class="str">"name,desc"</span>, <span class="kw">expect:</span> <span class="num">200</span> }
+    - { <span class="str">page</span>: <span class="str">"0"</span>, <span class="str">size</span>: <span class="str">"0"</span>,   <span class="str">sort</span>: <span class="str">"name,asc"</span>,  <span class="kw">expect:</span> <span class="num">400</span> }  <span class="cm"># invalid size</span>
+    - { <span class="str">page</span>: <span class="str">"-1"</span>, <span class="str">size</span>: <span class="str">"10"</span>, <span class="str">sort</span>: <span class="str">"name,asc"</span>,  <span class="kw">expect:</span> <span class="num">400</span> }  <span class="cm"># negative page</span></code></pre>
+
+      <h4>Example 4: Chaining with Parameterized Tests</h4>
+      <p>Parameterized tests can use saved variables from prior tests via <code>{{variable}}</code> syntax. The <code>expect</code> key can also be a map for richer assertions:</p>
+
+<pre><code><span class="kw">tests:</span>
+  <span class="cm"># First, create a user and save the ID</span>
+  - <span class="kw">name:</span> <span class="str">"Create test user"</span>
+    <span class="kw">method:</span> POST
+    <span class="kw">path:</span> /api/users
+    <span class="kw">request:</span>
+      <span class="kw">body:</span>
+        <span class="str">name</span>: <span class="str">"TestUser"</span>
+        <span class="str">email</span>: <span class="str">"test@example.com"</span>
+    <span class="kw">expect:</span>
+      <span class="kw">status:</span> <span class="num">201</span>
+      <span class="kw">save:</span>
+        <span class="str">userId</span>: <span class="str">$.id</span>
+
+  <span class="cm"># Then, test updating with various invalid payloads</span>
+  - <span class="kw">name:</span> <span class="str">"Update user validation"</span>
+    <span class="kw">method:</span> PUT
+    <span class="kw">path:</span> <span class="str">/api/users/{{userId}}</span>
+    <span class="kw">dependsOn:</span> <span class="str">"Create test user"</span>
+    <span class="kw">request:</span>
+      <span class="kw">body:</span>
+        <span class="str">name</span>: <span class="str">"{{newName}}"</span>
+        <span class="str">email</span>: <span class="str">"{{newEmail}}"</span>
+    <span class="kw">parameterized:</span>
+      - { <span class="str">newName</span>: <span class="str">"Updated"</span>,  <span class="str">newEmail</span>: <span class="str">"updated@test.com"</span>,  <span class="kw">expect:</span> <span class="num">200</span> }
+      - { <span class="str">newName</span>: <span class="str">""</span>,         <span class="str">newEmail</span>: <span class="str">"valid@test.com"</span>,    <span class="kw">expect:</span> <span class="num">400</span> }
+      - { <span class="str">newName</span>: <span class="str">"Valid"</span>,    <span class="str">newEmail</span>: <span class="str">"bad-email"</span>,        <span class="kw">expect:</span> <span class="num">400</span> }</code></pre>
+
+      <h4>Under the Hood</h4>
+
+      <figure>
+        <svg viewBox="0 0 660 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Parameterized test expansion: one YAML definition with a parameterized list is expanded into multiple isolated DynamicTest instances, each with a snapshot copy of the variable store">
+          <defs>
+            <marker id="pa" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+              <polygon points="0 0, 7 2.5, 0 5" fill="var(--diagram-stroke)"/>
+            </marker>
+          </defs>
+
+          <!-- Source YAML -->
+          <rect x="20" y="30" width="200" height="110" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-accent)" stroke-width="1.5"/>
+          <text x="120" y="52" font-family="system-ui, sans-serif" font-size="11" fill="var(--diagram-accent)" text-anchor="middle" font-weight="700">YAML Definition</text>
+          <text x="120" y="72" font-family="monospace" font-size="8.5" fill="var(--diagram-text)" text-anchor="middle">name: "User lookup"</text>
+          <text x="120" y="86" font-family="monospace" font-size="8.5" fill="var(--diagram-text)" text-anchor="middle">path: /api/users/{{id}}</text>
+          <text x="120" y="100" font-family="monospace" font-size="8.5" fill="var(--diagram-accent)" text-anchor="middle">parameterized:</text>
+          <text x="120" y="114" font-family="monospace" font-size="8" fill="var(--fg-muted)" text-anchor="middle">[ {id:1}, {id:2}, {id:999} ]</text>
+
+          <!-- Arrow: expand -->
+          <line x1="220" y1="60" x2="290" y2="42" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#pa)"/>
+          <line x1="220" y1="85" x2="290" y2="115" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#pa)"/>
+          <line x1="220" y1="110" x2="290" y2="195" stroke="var(--diagram-stroke)" stroke-width="1" marker-end="url(#pa)"/>
+          <text x="248" y="74" font-family="system-ui, sans-serif" font-size="8" fill="var(--fg-muted)">expand</text>
+
+          <!-- DynamicTest 1 -->
+          <rect x="290" y="20" width="350" height="55" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="310" y="40" font-family="system-ui, sans-serif" font-size="10" fill="var(--diagram-text)" font-weight="600">DynamicTest</text>
+          <text x="310" y="55" font-family="monospace" font-size="8" fill="var(--diagram-accent2)">User lookup [1] {id=1, expect=200}</text>
+          <rect x="548" y="28" width="80" height="20" rx="3" fill="var(--diagram-accent)" fill-opacity="0.1" stroke="var(--diagram-accent)" stroke-width="0.8"/>
+          <text x="588" y="42" font-family="monospace" font-size="8" fill="var(--diagram-accent)" text-anchor="middle">resolver.copy()</text>
+          <text x="588" y="64" font-family="monospace" font-size="7.5" fill="var(--fg-muted)" text-anchor="middle">id=1</text>
+
+          <!-- DynamicTest 2 -->
+          <rect x="290" y="95" width="350" height="55" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="310" y="115" font-family="system-ui, sans-serif" font-size="10" fill="var(--diagram-text)" font-weight="600">DynamicTest</text>
+          <text x="310" y="130" font-family="monospace" font-size="8" fill="var(--diagram-accent2)">User lookup [2] {id=2, expect=200}</text>
+          <rect x="548" y="103" width="80" height="20" rx="3" fill="var(--diagram-accent)" fill-opacity="0.1" stroke="var(--diagram-accent)" stroke-width="0.8"/>
+          <text x="588" y="117" font-family="monospace" font-size="8" fill="var(--diagram-accent)" text-anchor="middle">resolver.copy()</text>
+          <text x="588" y="139" font-family="monospace" font-size="7.5" fill="var(--fg-muted)" text-anchor="middle">id=2</text>
+
+          <!-- DynamicTest 3 -->
+          <rect x="290" y="170" width="350" height="55" rx="4" fill="var(--diagram-fill)" stroke="var(--diagram-stroke)" stroke-width="1.2"/>
+          <text x="310" y="190" font-family="system-ui, sans-serif" font-size="10" fill="var(--diagram-text)" font-weight="600">DynamicTest</text>
+          <text x="310" y="205" font-family="monospace" font-size="8" fill="var(--diagram-accent2)">User lookup [3] {id=999, expect=404}</text>
+          <rect x="548" y="178" width="80" height="20" rx="3" fill="var(--diagram-accent)" fill-opacity="0.1" stroke="var(--diagram-accent)" stroke-width="0.8"/>
+          <text x="588" y="192" font-family="monospace" font-size="8" fill="var(--diagram-accent)" text-anchor="middle">resolver.copy()</text>
+          <text x="588" y="214" font-family="monospace" font-size="7.5" fill="var(--fg-muted)" text-anchor="middle">id=999</text>
+
+          <!-- Isolation callout -->
+          <rect x="290" y="248" width="350" height="35" rx="4" fill="var(--diagram-accent2)" fill-opacity="0.08" stroke="var(--diagram-accent2)" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="465" y="270" font-family="system-ui, sans-serif" font-size="9" fill="var(--diagram-accent2)" text-anchor="middle" font-weight="600">Each test gets a snapshot copy of VariableResolver &mdash; full isolation</text>
+        </svg>
+        <figcaption>Fig 6 &mdash; Parameterized test expansion. One YAML definition produces multiple JUnit DynamicTest instances. Each gets a <code>resolver.copy()</code> snapshot so variable mutations are isolated.</figcaption>
+      </figure>
+
+      <p>Internally, <code>ScanRestTestRunner</code> processes each parameterized entry as follows:</p>
+      <ol class="steps">
+        <li><strong>Snapshot the variable store</strong> &mdash; calls <code>VariableResolver.copy()</code> to create an isolated copy of all current variables (globals, profile vars, and any saved response values from prior tests).</li>
+        <li><strong>Inject parameter variables</strong> &mdash; each key in the entry (except <code>expect</code>) is set on the snapshot resolver via <code>paramResolver.set(key, value)</code>.</li>
+        <li><strong>Override expectations</strong> &mdash; if the entry contains <code>expect</code>, it overrides the test&rsquo;s default <code>expect.status</code>. Can be an integer (<code>expect: 200</code>) or a map (<code>expect: { status: 404 }</code>).</li>
+        <li><strong>Execute and name</strong> &mdash; the test runs with the snapshot resolver and appears in JUnit as <code>"Test name [index] {params}"</code>, e.g., <code>"User lookup [3] {id=999, expect=404}"</code>.</li>
+      </ol>
+
+      <div class="callout info">
+        <strong>Isolation guarantee</strong>
+        Each parameterized run gets its own <code>VariableResolver</code> copy. If test [1] modifies a variable during execution, test [2] still sees the original values. This prevents data leaks between data sets.
+      </div>
+
+      <div class="callout">
+        <strong>When to use parameterized tests</strong>
+        Use them for boundary testing (valid/invalid inputs), status code verification across multiple IDs, input validation (email formats, required fields, numeric ranges), and pagination/filter testing. Avoid them when tests need different request bodies or headers that can&rsquo;t be captured with simple variable substitution &mdash; write separate detailed tests instead.
+      </div>
+    </section>
+
+    <!-- =========== CH 12: AUTO-MOCK =========== -->
+    <section class="chapter" id="auto-mock">
+      <div class="chapter-num">Chapter 12</div>
+      <h3>Auto-Mock Services</h3>
+      <p>When <code>scanrest.mock-services=true</code>, ScanRest replaces all <code>@Service</code> beans with Mockito mocks at startup. This lets you test controller routing, validation, and serialization without implementing any service logic.</p>
+
+<pre><code><span class="cm"># application.properties</span>
+<span class="kw">scanrest.mode</span>=<span class="str">MOCKMVC</span>
+<span class="kw">scanrest.mock-services</span>=<span class="str">true</span></code></pre>
+
+      <p>The <code>ScanRestMockConfiguration</code> uses a <code>BeanFactoryPostProcessor</code> to intercept bean definitions. Every bean whose class is annotated with <code>@Service</code> is replaced with a Mockito mock via reflection. Requires <code>spring-boot-starter-test</code> (which includes Mockito) on the classpath.</p>
+
+      <div class="callout">
+        <strong>When to use</strong>
+        Auto-mocking is ideal for smoke-testing controller layers in CI &mdash; verify that endpoints are wired correctly and return the right HTTP status codes, without standing up databases or external services.
+      </div>
+    </section>
+
+    <!-- =========== CH 13: CLI =========== -->
+    <section class="chapter" id="cli">
+      <div class="chapter-num">Chapter 13</div>
+      <h3>CLI Reference</h3>
+      <p>ScanRest ships as a fat JAR with three Picocli subcommands. Use the CLI to scan endpoints, generate YAML, and run tests outside of JUnit.</p>
+
+      <h4>Commands</h4>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Command</th><th>Description</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>scan</code></td>
+              <td>Scans a classpath for Spring endpoints and prints them</td>
+              <td><code>java -jar scanrest.jar scan --classpath target/classes</code></td>
+            </tr>
+            <tr>
+              <td><code>generate</code></td>
+              <td>Scans endpoints and writes a skeleton YAML file</td>
+              <td><code>java -jar scanrest.jar generate --classpath target/classes -o tests.yml</code></td>
+            </tr>
+            <tr>
+              <td><code>test</code></td>
+              <td>Executes tests from a YAML file</td>
+              <td><code>java -jar scanrest.jar test -f tests.yml --profile staging</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>CLI Workflow</h4>
+<pre><code><span class="cm"># Step 1: Build your Spring Boot project</span>
+mvn compile
+
+<span class="cm"># Step 2: Generate a test skeleton</span>
+java -jar scanrest.jar generate \
+  --classpath target/classes \
+  -o src/test/resources/auto-tests.yml
+
+<span class="cm"># Step 3: Edit the generated YAML &mdash; add assertions, bodies, etc.</span>
+
+<span class="cm"># Step 4: Run tests against a live server</span>
+java -jar scanrest.jar test \
+  -f src/test/resources/auto-tests.yml \
+  --base-url http://localhost:8080 \
+  --profile dev</code></pre>
+    </section>
+
+    <!-- =========== CH 14: STRATEGIES =========== -->
+    <section class="chapter" id="strategies">
+      <div class="chapter-num">Chapter 14</div>
+      <h3>Testing Strategies</h3>
+      <p>ScanRest supports seven distinct strategies, each suited to different testing goals. Choose based on what you need to verify and how much of the stack you want running.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Strategy</th><th>Mode</th><th>Spring Context</th><th>Use Case</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>A: Full Integration</strong></td>
+              <td>LIVE</td>
+              <td><code>@SpringBootTest(RANDOM_PORT)</code></td>
+              <td>End-to-end testing with real HTTP and full application stack</td>
+            </tr>
+            <tr>
+              <td><strong>B: MockMvc + Mocks</strong></td>
+              <td>MOCKMVC</td>
+              <td><code>@SpringBootTest</code> + <code>@MockBean</code></td>
+              <td>Controller testing with developer-controlled service mocks</td>
+            </tr>
+            <tr>
+              <td><strong>C: Controller Slice</strong></td>
+              <td>MOCKMVC</td>
+              <td><code>@WebMvcTest(Controller.class)</code></td>
+              <td>Lightweight &mdash; loads only the controller layer</td>
+            </tr>
+            <tr>
+              <td><strong>D: Auto-Mock</strong></td>
+              <td>MOCKMVC</td>
+              <td><code>scanrest.mock-services=true</code></td>
+              <td>All services auto-mocked &mdash; verify wiring only</td>
+            </tr>
+            <tr>
+              <td><strong>E: In-Memory DB</strong></td>
+              <td>LIVE</td>
+              <td><code>@ActiveProfiles("test")</code> + H2</td>
+              <td>Full stack with a disposable test database</td>
+            </tr>
+            <tr>
+              <td><strong>F: Auto-run</strong></td>
+              <td>Any</td>
+              <td><code>scanrest.run-on-startup=true</code></td>
+              <td>Batch run on app startup, single JUnit result</td>
+            </tr>
+            <tr>
+              <td><strong>G: Batch</strong></td>
+              <td>Any</td>
+              <td>Manual <code>runTests()</code> call</td>
+              <td>Single <code>@Test</code> wrapping all YAML tests</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout info">
+        <strong>Recommendation</strong>
+        Start with <strong>Strategy A</strong> (full integration) for confidence, then add <strong>Strategy C</strong> (controller slice) for fast feedback on controller logic during development. Use <strong>Strategy D</strong> (auto-mock) for CI smoke tests that verify endpoint wiring without external dependencies.
+      </div>
+    </section>
+
+    <!-- =========== CH 15: PROPERTIES =========== -->
+    <section class="chapter" id="properties">
+      <div class="chapter-num">Chapter 15</div>
+      <h3>Configuration Properties Reference</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Property</th><th>Default</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>scanrest.enabled</code></td><td><code>true</code></td><td>Enable or disable ScanRest entirely</td></tr>
+            <tr><td><code>scanrest.file</code></td><td><code>auto-tests.yml</code></td><td>Path to the YAML test file (classpath or filesystem)</td></tr>
+            <tr><td><code>scanrest.mode</code></td><td><code>LIVE</code></td><td>Execution mode: LIVE, MOCKMVC, or EMBEDDED</td></tr>
+            <tr><td><code>scanrest.profile</code></td><td>&mdash;</td><td>Active profile name from the YAML config</td></tr>
+            <tr><td><code>scanrest.base-url</code></td><td>&mdash;</td><td>Base URL for HTTP requests (auto-detected in LIVE mode)</td></tr>
+            <tr><td><code>scanrest.auto-generate</code></td><td><code>false</code></td><td>Generate YAML from scanned endpoints if file is missing</td></tr>
+            <tr><td><code>scanrest.fail-on-error</code></td><td><code>true</code></td><td>Fail the JUnit test if any YAML test fails</td></tr>
+            <tr><td><code>scanrest.report-path</code></td><td>&mdash;</td><td>File path for exporting test reports</td></tr>
+            <tr><td><code>scanrest.run-on-startup</code></td><td><code>false</code></td><td>Run all tests when the application starts</td></tr>
+            <tr><td><code>scanrest.mock-services</code></td><td><code>false</code></td><td>Replace all @Service beans with Mockito mocks</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>

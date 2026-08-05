@@ -2,8 +2,8 @@ package com.example.demo;
 
 import com.example.demo.model.User;
 import com.example.demo.service.UserService;
-import com.yubraj.test.scanrest.autoconfigure.EnableScanRest;
-import com.yubraj.test.scanrest.autoconfigure.ScanRestTestRunner;
+import io.scanrest.autoconfigure.EnableScanRest;
+import io.scanrest.autoconfigure.ScanRestTestRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;

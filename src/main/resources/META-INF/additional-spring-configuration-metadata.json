@@ -2,7 +2,7 @@
   "groups": [
     {
       "name": "scanrest",
-      "type": "com.yubraj.test.scanrest.autoconfigure.ScanRestProperties",
+      "type": "io.scanrest.autoconfigure.ScanRestProperties",
       "description": "ScanRest auto API testing configuration."
     }
   ],
@@ -21,7 +21,7 @@
     },
     {
       "name": "scanrest.mode",
-      "type": "com.yubraj.test.scanrest.autoconfigure.ScanRestProperties$Mode",
+      "type": "io.scanrest.autoconfigure.ScanRestProperties$Mode",
       "description": "Execution mode: LIVE (HTTP), MOCKMVC (Spring MockMvc), or EMBEDDED (deprecated alias for MOCKMVC).",
       "defaultValue": "LIVE"
     },

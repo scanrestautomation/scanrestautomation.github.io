@@ -35,7 +35,7 @@ ScanRest can be used in two ways:
 
 ```xml
 <dependency>
-    <groupId>com.yubraj.test</groupId>
+    <groupId>io.scanrest</groupId>
     <artifactId>scanrest</artifactId>
     <version>1.0-SNAPSHOT</version>
     <scope>test</scope>
@@ -419,6 +419,53 @@ tests:
       schema: "schemas/user.json"
       save:
         createdUserId: "$.id"
+```
+
+### Request Body
+
+The request body can be specified in two ways:
+
+**Map style** (YAML object — best for small/simple bodies):
+
+```yaml
+request:
+  body:
+    name: "John Doe"
+    email: "john@example.com"
+    phone: "1234567890"
+```
+
+**Raw JSON** (literal string — best for large or complex bodies):
+
+```yaml
+request:
+  body: |
+    {
+      "name": "John Doe",
+      "email": "john@example.com",
+      "address": {
+        "street": "123 Main St",
+        "city": "Springfield",
+        "state": "IL",
+        "zip": "62704"
+      },
+      "roles": ["admin", "user"],
+      "metadata": {
+        "source": "import",
+        "tags": ["vip", "beta"]
+      }
+    }
+```
+
+The `|` is YAML's literal block scalar — everything indented underneath is treated as a plain string. Variable interpolation (`{{variable}}`) works inside raw JSON bodies too:
+
+```yaml
+request:
+  body: |
+    {
+      "name": "{{userName}}",
+      "email": "{{userEmail}}"
+    }
 ```
 
 ### Test Chaining

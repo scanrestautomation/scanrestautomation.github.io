@@ -49,17 +49,19 @@ tests:
     expect:
       status: 404
 
-  # -------- CREATE a new user --------
+  # -------- CREATE a new user (raw JSON body) --------
   - name: "Create user"
     path: /api/users
     method: POST
     request:
-      body:
-        firstname: "John"
-        lastname: "Doe"
-        email: "john@example.com"
-        phone: "1234567890"
-        status: "ACTIVE"
+      body: |
+        {
+          "firstname": "John",
+          "lastname": "Doe",
+          "email": "john@example.com",
+          "phone": "1234567890",
+          "status": "ACTIVE"
+        }
     expect:
       status: 201
       body:
@@ -86,17 +88,19 @@ tests:
         $.firstname: "Jane"
         $.email: "jane@example.com"
 
-  # -------- UPDATE non-existent user --------
+  # -------- UPDATE non-existent user (raw JSON body) --------
   - name: "Update non-existent user"
     path: /api/users/99999
     method: PUT
     request:
-      body:
-        firstname: "Ghost"
-        lastname: "User"
-        email: "ghost@example.com"
-        phone: "0000000000"
-        status: "INACTIVE"
+      body: |
+        {
+          "firstname": "Ghost",
+          "lastname": "User",
+          "email": "ghost@example.com",
+          "phone": "0000000000",
+          "status": "INACTIVE"
+        }
     expect:
       status: 404
 
