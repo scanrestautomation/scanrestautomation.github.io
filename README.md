@@ -288,7 +288,7 @@ This shows `Tests run: 1` in JUnit. Use `@TestFactory` instead for individual te
 |----------|------|---------|-------------|
 | `scanrest.enabled` | `boolean` | `true` | Enable/disable ScanRest entirely |
 | `scanrest.file` | `String` | `scanrest-tests.yml` | Path to YAML test file |
-| `scanrest.mode` | `LIVE\|MOCKMVC\|EMBEDDED` | `LIVE` | Execution mode |
+| `scanrest.mode` | `LIVE\|MOCKMVC\|EMBEDDED` | `LIVE` | Execution mode (`EMBEDDED` is deprecated, use `MOCKMVC`) |
 | `scanrest.profile` | `String` | - | Active profile (overrides YAML) |
 | `scanrest.base-url` | `String` | - | Base URL override for live mode |
 | `scanrest.auto-generate` | `boolean` | `false` | Auto-generate YAML from scanned endpoints |
@@ -304,6 +304,8 @@ This shows `Tests run: 1` in JUnit. Use `@TestFactory` instead for individual te
 | `LIVE` | Real HTTP (RestAssured) | Full app + real server | Integration tests, E2E |
 | `MOCKMVC` | MockMvc (no HTTP) | Existing Spring context | Unit/controller tests, @MockBean, @WebMvcTest |
 | `EMBEDDED` | *(deprecated)* | Alias for MOCKMVC | Use MOCKMVC instead |
+
+**Note:** `EMBEDDED` is a deprecated alias for `MOCKMVC`. When you set `scanrest.mode=EMBEDDED`, it internally uses `MOCKMVC` mode, and logs will display "Mode: MOCKMVC". Use `MOCKMVC` directly for clarity.
 
 ---
 
@@ -577,6 +579,52 @@ src/main/java/com/yubraj/test/scanrest/
 └── scanner/
     └── EndpointScanner.java         # Spring annotation scanner
 ```
+
+## Example Projects
+
+The repository includes three example projects demonstrating different ScanRest use cases:
+
+### `example/` — Full Integration Tests (LIVE mode)
+
+Full CRUD API with in-memory user service. Tests run against a real HTTP server.
+
+- **Mode**: `LIVE` (RestAssured + real HTTP)
+- **Tests**: 10 (CRUD operations with test chaining)
+- **Demonstrates**: `save`, `dependsOn`, variable interpolation, JSONPath assertions
+
+```bash
+cd example && mvn test
+```
+
+### `example-mock/` — MockMvc with Mocked Services
+
+Same API as `example/`, but the service layer is replaced with `@MockitoBean` mocks.
+
+- **Mode**: `MOCKMVC` (Spring MockMvc, no HTTP)
+- **Tests**: 8 (controller tests with mocked service)
+- **Demonstrates**: `@MockitoBean`, MockMvc mode, raw JSON body syntax
+
+```bash
+cd example-mock && mvn test
+```
+
+### `example-auth/` — Token-Based Authentication Flow
+
+Demonstrates login → save token → use token in headers workflow.
+
+- **Mode**: `LIVE` or `MOCKMVC` (both work)
+- **Tests**: 9 (login, protected endpoints, logout, negative tests)
+- **Demonstrates**: Header variable interpolation (`X-Auth-Token: {{userToken}}`), static in-memory auth service, test chaining
+
+```bash
+cd example-auth && mvn test
+```
+
+**Key features:**
+- Login with username/password → receive token
+- Save token: `save: { userToken: "$.userToken" }`
+- Use token in subsequent requests: `headers: { X-Auth-Token: "{{userToken}}" }`
+- Static `ConcurrentHashMap` for users and tokens (persists across requests)
 
 ## Requirements
 

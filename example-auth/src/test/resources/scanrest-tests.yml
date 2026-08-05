@@ -1,0 +1,132 @@
+# ============================================
+# ScanRest Test Specification - Auth Flow Demo
+# ============================================
+# Demonstrates token-based authentication:
+# 1. Login with username/password -> get token
+# 2. Save token to variable
+# 3. Use token in subsequent requests via header
+
+config:
+  name: "Auth Flow API Tests"
+  baseUrl: "http://localhost:8080"
+
+  globalHeaders:
+    Content-Type: "application/json"
+
+  variables: {}
+
+# ============================================
+# TESTS
+# ============================================
+tests:
+
+  # -------- LOGIN: Get auth token --------
+  - name: "Login with valid credentials"
+    path: /api/auth/login
+    method: POST
+    request:
+      body:
+        username: "admin"
+        password: "admin123"
+    expect:
+      status: 200
+      body:
+        $.userToken: NOT_NULL
+        $.username: "admin"
+      save:
+        userToken: "$.userToken"
+
+  # -------- PROTECTED ENDPOINT: Use saved token --------
+  - name: "Get user profile with token"
+    path: /api/auth/profile
+    method: GET
+    dependsOn: "Login with valid credentials"
+    request:
+      headers:
+        X-Auth-Token: "{{userToken}}"
+    expect:
+      status: 200
+      body:
+        $.username: "admin"
+        $.email: "admin@example.com"
+        $.role: "USER"
+
+  # -------- LOGOUT: Invalidate token --------
+  - name: "Logout"
+    path: /api/auth/logout
+    method: POST
+    dependsOn: "Get user profile with token"
+    request:
+      headers:
+        X-Auth-Token: "{{userToken}}"
+    expect:
+      status: 204
+
+  # -------- VERIFY TOKEN INVALIDATED --------
+  - name: "Verify token is invalid after logout"
+    path: /api/auth/profile
+    method: GET
+    dependsOn: "Logout"
+    request:
+      headers:
+        X-Auth-Token: "{{userToken}}"
+    expect:
+      status: 401
+
+  # -------- NEGATIVE TEST: Invalid credentials --------
+  - name: "Login with invalid credentials"
+    path: /api/auth/login
+    method: POST
+    request:
+      body:
+        username: "admin"
+        password: "wrongpassword"
+    expect:
+      status: 401
+
+  # -------- NEGATIVE TEST: Missing token --------
+  - name: "Access protected endpoint without token"
+    path: /api/auth/profile
+    method: GET
+    expect:
+      status: 401
+
+  # -------- NEGATIVE TEST: Invalid token --------
+  - name: "Access protected endpoint with invalid token"
+    path: /api/auth/profile
+    method: GET
+    request:
+      headers:
+        X-Auth-Token: "invalid-token-12345"
+    expect:
+      status: 401
+
+  # -------- SECOND USER LOGIN --------
+  - name: "Login as different user"
+    path: /api/auth/login
+    method: POST
+    request:
+      body:
+        username: "user"
+        password: "password"
+    expect:
+      status: 200
+      body:
+        $.userToken: NOT_NULL
+        $.username: "user"
+      save:
+        userToken2: "$.userToken"
+
+  # -------- USE SECOND USER TOKEN --------
+  - name: "Get profile for second user"
+    path: /api/auth/profile
+    method: GET
+    dependsOn: "Login as different user"
+    request:
+      headers:
+        X-Auth-Token: "{{userToken2}}"
+    expect:
+      status: 200
+      body:
+        $.username: "user"
+        $.email: "user@example.com"
