@@ -4,13 +4,28 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.yubraj.test</groupId>
+    <groupId>io.scanrest</groupId>
     <artifactId>scanrest</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>ScanRest</name>
     <description>ScanRest - Auto API testing library for Spring Boot projects. Scans endpoints, generates YAML test specs, and executes tests.</description>
+    <url>https://github.com/scanrestautomation/scanrestautomation.github.io</url>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/scanrestautomation/scanrestautomation.github.io</url>
+        <connection>scm:git:https://github.com/scanrestautomation/scanrestautomation.github.io.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/scanrestautomation/scanrestautomation.github.io.git</developerConnection>
+    </scm>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -168,7 +183,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.yubraj.test.scanrest.cli.ScanRestCli</mainClass>
+                                    <mainClass>io.scanrest.cli.ScanRestCli</mainClass>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                                     <resource>META-INF/spring.handlers</resource>
