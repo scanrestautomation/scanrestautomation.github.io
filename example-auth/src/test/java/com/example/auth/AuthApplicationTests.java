@@ -1,0 +1,33 @@
+package com.example.auth;
+
+import io.scanrest.autoconfigure.EnableScanRest;
+import io.scanrest.autoconfigure.ScanRestTestRunner;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.TestFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.Collection;
+
+/**
+ * Example: ScanRest with token-based authentication flow.
+ *
+ * Demonstrates:
+ * - Login with username/password -> save token
+ * - Use saved token in subsequent requests via headers
+ * - Test chaining with dependsOn
+ * - Variable interpolation in headers ({{userToken}})
+ */
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@EnableScanRest
+class AuthApplicationTests {
+
+	@Autowired
+	private ScanRestTestRunner scanRestRunner;
+
+	@TestFactory
+	Collection<DynamicTest> authFlowTests() {
+		return scanRestRunner.toDynamicTests();
+	}
+
+}
